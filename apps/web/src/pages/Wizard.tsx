@@ -3,14 +3,24 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { Check, Loader2, Lock, LockOpen, Plus, Sparkles, X } from 'lucide-react';
+import {
+  BellRing,
+  Check,
+  ImageOff,
+  Loader2,
+  Lock,
+  LockOpen,
+  Plus,
+  Sparkles,
+  X,
+} from 'lucide-react';
 import {
   AUTO_ADVICE_MAX_EUR,
   TIER_CAP_EUR,
   estimateMonthlyUsd,
   describeQuantity,
 } from '@gier/core/browser';
-import { api, type CreateProductInput } from '@/lib/api';
+import { api, imageSrc, type CreateProductInput } from '@/lib/api';
 import { euro, euroPrecise, parseEuroInput } from '@/lib/format';
 import type {
   AlertKind,
@@ -173,7 +183,8 @@ function ProductStep({
         role="status"
       >
         <Loader2 className="size-6 animate-spin" aria-hidden />
-        {t('wizard.searching')}
+        <span className="font-medium text-foreground">{t('wizard.searching')}</span>
+        <span className="max-w-xs text-center text-sm">{t('wizard.searchingHint')}</span>
       </div>
     );
   if (proposal.isError)
@@ -229,6 +240,8 @@ function ProductStep({
           {t('wizard.confirmTitle')}
         </h1>
       </div>
+
+      {p.reference && <ReferenceImage reference={p.reference} name={draft.name} />}
 
       <div className="grid gap-5 rounded-2xl border bg-card p-5">
         <div className="grid gap-1.5">
@@ -444,6 +457,7 @@ function StoresStep({
   onNext: () => void;
 }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const run = useQuery({
     queryKey: ['discovery', runId],
@@ -496,6 +510,22 @@ function StoresStep({
           </p>
           {r.status === 'failed' && <p className="text-sm text-rise-foreground">{r.error}</p>}
         </div>
+        {r.status === 'running' && (
+          <div className="mt-4 flex items-start gap-3 rounded-xl border bg-secondary/40 p-3 text-sm">
+            <BellRing className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <div className="grid gap-2">
+              <p>{t('wizard.backgroundHint')}</p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="justify-self-start"
+                onClick={() => void navigate(`/p/${productId}`)}
+              >
+                {t('wizard.continueInBackground')}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {r.status === 'done' && (r.candidates?.length ?? 0) === 0 && (
@@ -568,13 +598,20 @@ function CandidateGroup({
             tone === 'excluded' && 'opacity-70',
           )}
         >
-          <span
-            className={cn(
-              'size-2.5 shrink-0 rounded-full',
-              tone === 'trusted' ? 'bg-prey' : tone === 'doubt' ? 'bg-amber-400' : 'bg-destructive',
-            )}
-            aria-hidden
-          />
+          <span className="relative shrink-0">
+            <Thumb url={c.imageUrl} className="size-12" />
+            <span
+              className={cn(
+                'absolute -right-0.5 -bottom-0.5 size-3 rounded-full ring-2 ring-card',
+                tone === 'trusted'
+                  ? 'bg-prey'
+                  : tone === 'doubt'
+                    ? 'bg-amber-400'
+                    : 'bg-destructive',
+              )}
+              aria-hidden
+            />
+          </span>
           <div className="min-w-0 flex-1">
             <p className="font-semibold">{c.storeName}</p>
             <p className="truncate text-xs text-muted-foreground" title={c.title ?? c.url}>
@@ -617,6 +654,63 @@ function CandidateGroup({
         </>
       )}
     </section>
+  );
+}
+
+/** Product picture from a shop, through Gier's image proxy. */
+function Thumb({ url, className }: { url?: string | null; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!url || failed)
+    return (
+      <span
+        className={cn('grid place-items-center rounded-lg bg-secondary', className)}
+        aria-hidden
+      >
+        <ImageOff className="size-4 text-muted-foreground" />
+      </span>
+    );
+  return (
+    <img
+      src={imageSrc(url)}
+      alt=""
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className={cn('rounded-lg bg-white object-contain', className)}
+    />
+  );
+}
+
+/** "Is this the product?": a picture from the search results, so the user can check the match. */
+function ReferenceImage({
+  reference,
+  name,
+}: {
+  reference: { imageUrl: string; source: string };
+  name: string;
+}) {
+  const { t } = useTranslation();
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  const host = (() => {
+    try {
+      return new URL(reference.source).hostname.replace(/^www\./, '');
+    } catch {
+      return reference.source;
+    }
+  })();
+  return (
+    <figure className="flex items-center gap-4 rounded-2xl border bg-card p-4">
+      <img
+        src={imageSrc(reference.imageUrl)}
+        alt={t('wizard.referenceAlt', { name })}
+        onError={() => setFailed(true)}
+        className="size-28 shrink-0 rounded-xl bg-white object-contain"
+      />
+      <figcaption className="grid gap-1 text-sm">
+        <span className="font-medium">{t('wizard.referenceTitle')}</span>
+        <span className="text-muted-foreground">{t('wizard.referenceHint', { source: host })}</span>
+      </figcaption>
+    </figure>
   );
 }
 

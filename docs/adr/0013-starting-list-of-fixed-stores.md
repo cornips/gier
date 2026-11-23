@@ -22,3 +22,5 @@ Discovery works better when it starts from shops that are known to be reliable. 
 ## Consequences
 
 The list grows with learned stores; fixed stores are always searched first. Reported prices are always the real prices; preferences only affect which store is shown as cheapest.
+
+In the interface these are called _known stores_; "fixed" turned out to be unclear for users.

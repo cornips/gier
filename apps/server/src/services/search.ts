@@ -6,6 +6,8 @@ export interface SearchHit {
   url: string;
   title: string;
   snippet: string;
+  /** Thumbnail from the search engine, when it gives one. */
+  image?: string | null;
 }
 
 export interface SearchOutcome {
@@ -39,13 +41,20 @@ async function searxng(ctx: Ctx, query: string): Promise<SearchHit[] | null> {
     const res = await ctx.http(url, { headers: { accept: 'application/json' } });
     if (!res.ok) return null;
     const data = (await res.json()) as {
-      results?: { url: string; title?: string; content?: string }[];
+      results?: {
+        url: string;
+        title?: string;
+        content?: string;
+        thumbnail?: string;
+        img_src?: string;
+      }[];
       unresponsive_engines?: unknown[];
     };
     const hits = (data.results ?? []).map((r) => ({
       url: r.url,
       title: r.title ?? '',
       snippet: r.content ?? '',
+      image: r.thumbnail || r.img_src || null,
     }));
     ctx.db.insert(searchUsage).values({ provider: 'searxng', query, results: hits.length }).run();
     return hits;
@@ -73,12 +82,20 @@ async function brave(ctx: Ctx, query: string): Promise<SearchHit[] | null> {
       .run();
     if (!res.ok) return null;
     const data = (await res.json()) as {
-      web?: { results?: { url: string; title?: string; description?: string }[] };
+      web?: {
+        results?: {
+          url: string;
+          title?: string;
+          description?: string;
+          thumbnail?: { src?: string; original?: string };
+        }[];
+      };
     };
     return (data.web?.results ?? []).map((r) => ({
       url: r.url,
       title: r.title ?? '',
       snippet: r.description ?? '',
+      image: r.thumbnail?.original ?? r.thumbnail?.src ?? null,
     }));
   } catch {
     return null;

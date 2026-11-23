@@ -3,14 +3,25 @@ import { domainOf, FIXED_STORES } from '@gier/core';
 import { stores, type Store } from '@gier/db';
 import type { Ctx } from '../context';
 
-/** Seeds the 38 fixed stores (ADR-013). Idempotent: existing rows keep the user's changes. */
+/**
+ * Seeds the known stores (ADR-013). Idempotent: existing rows keep the user's changes. A login URL that
+ * the registry gained later is filled in only where the store has none yet.
+ */
 export function seedStores(ctx: Ctx): number {
   let added = 0;
   for (const s of FIXED_STORES) {
     const existing = s.domain
       ? ctx.db.select().from(stores).where(eq(stores.domain, s.domain)).get()
       : ctx.db.select().from(stores).where(eq(stores.name, s.name)).get();
-    if (existing) continue;
+    if (existing) {
+      if (s.rules?.loginUrl && !existing.rules?.loginUrl)
+        ctx.db
+          .update(stores)
+          .set({ rules: { ...(existing.rules ?? {}), loginUrl: s.rules.loginUrl } })
+          .where(eq(stores.id, existing.id))
+          .run();
+      continue;
+    }
     ctx.db
       .insert(stores)
       .values({

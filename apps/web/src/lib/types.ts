@@ -104,6 +104,8 @@ export interface FingerprintProposal {
   learned: { term: string; category: string | null; count: number }[];
   alwaysExcluded: string[];
   aiUnavailable?: string;
+  /** Picture to confirm "is this the product?", with the page it came from. */
+  reference?: { imageUrl: string; source: string } | null;
 }
 
 export interface DiscoveryCandidate {
@@ -120,6 +122,7 @@ export interface DiscoveryCandidate {
   trust: 'trusted' | 'doubt' | 'excluded';
   trustReasons: string[];
   followed: boolean;
+  imageUrl?: string | null;
 }
 
 export interface DiscoveryRun {
@@ -189,7 +192,7 @@ export interface Costs {
 export interface Handoff {
   id: string;
   storeId: number;
-  status: 'waiting' | 'done' | 'failed' | 'expired';
+  status: 'waiting' | 'done' | 'failed' | 'expired' | 'cancelled';
   liveViewUrl?: string;
   error?: string;
 }

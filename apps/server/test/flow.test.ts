@@ -105,7 +105,11 @@ describe('discovery → follow → check → alert', () => {
     const outcome = await checkListing(ctx, kv);
     expect(outcome.status).toBe('changed');
     const inbox = ctx.db.select().from(notifications).all();
-    expect(inbox.map((n) => n.title)).toEqual([`Top deal · ${rexona.title}`]);
+    // The first search ran unwatched, so it announced itself; then the price drop.
+    expect(inbox.map((n) => n.title)).toEqual([
+      `Search done · ${rexona.title}`,
+      `Top deal · ${rexona.title}`,
+    ]);
 
     // Notifications follow the language the web app reports.
     setLanguage(ctx, 'nl');

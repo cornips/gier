@@ -52,8 +52,20 @@ interface CallOptions {
   purpose: AiPurpose;
   system: string;
   prompt: string;
+  /** Room for the visible answer. Thinking gets extra room on top, see THINKING_ROOM. */
   maxTokens: number;
+  /** JSON schema for structured output; the reply is then guaranteed to be valid JSON. */
+  schema?: Record<string, unknown>;
 }
+
+/**
+ * Claude 5-generation models think before answering (adaptive thinking) and those tokens count towards
+ * max_tokens. A tight limit can end the reply after the thinking, without any text. Low effort keeps
+ * thinking short; this headroom covers what remains. Older models ignore neither, so only send effort
+ * where it is supported.
+ */
+const THINKING_ROOM = 1024;
+const supportsEffort = (model: string) => /claude-(haiku|sonnet|opus)-5/.test(model);
 
 /**
  * Calls the Anthropic Messages API with budget checks before the call and a cost log after it (ADR-009).
@@ -75,7 +87,9 @@ export async function callClaude(
         .where(eq(products.id, o.productId))
         .get()?.t ?? 'frugal')
     : 'frugal';
-  const estimate = costUsd(env.ANTHROPIC_MODEL, inTokens, o.maxTokens) * rate;
+  const thinks = supportsEffort(env.ANTHROPIC_MODEL);
+  const maxTokens = o.maxTokens + (thinks ? THINKING_ROOM : 0);
+  const estimate = costUsd(env.ANTHROPIC_MODEL, inTokens, maxTokens) * rate;
   const decision = canSpend(
     {
       tier,
@@ -96,14 +110,23 @@ export async function callClaude(
     },
     body: JSON.stringify({
       model: env.ANTHROPIC_MODEL,
-      max_tokens: o.maxTokens,
+      max_tokens: maxTokens,
       system: o.system,
       messages: [{ role: 'user', content: o.prompt }],
+      ...(thinks || o.schema
+        ? {
+            output_config: {
+              ...(thinks ? { effort: 'low' } : {}),
+              ...(o.schema ? { format: { type: 'json_schema', schema: o.schema } } : {}),
+            },
+          }
+        : {}),
     }),
   });
   if (!res.ok) throw new Error(`Anthropic API ${res.status}: ${(await res.text()).slice(0, 300)}`);
   const data = (await res.json()) as {
     content: { type: string; text?: string }[];
+    stop_reason?: string;
     usage: { input_tokens: number; output_tokens: number };
   };
   const usd = costUsd(env.ANTHROPIC_MODEL, data.usage.input_tokens, data.usage.output_tokens);
@@ -121,10 +144,16 @@ export async function callClaude(
     })
     .returning({ id: aiCalls.id })
     .all();
+  // Replies can start with thinking blocks: pick text blocks by type.
   const text = data.content
     .filter((c) => c.type === 'text')
     .map((c) => c.text ?? '')
     .join('');
+  if (data.stop_reason === 'refusal') throw new Error('AI declined the request');
+  if (!text.trim())
+    throw new Error(
+      data.stop_reason === 'max_tokens' ? 'AI reply cut off before any text' : 'Empty AI reply',
+    );
   return { text, costEur, callId: row!.id };
 }
 
@@ -153,6 +182,32 @@ Reply with JSON only, no prose. Schema:
 "variants" lists other sizes or packs that exist for the same product line (max 5).
 "category" is a short lowercase English shop category such as "personal care", "audio", "kitchen".`;
 
+const nullableString = { type: ['string', 'null'] };
+const FINGERPRINT_SCHEMA = {
+  type: 'object',
+  properties: {
+    name: { type: 'string' },
+    brand: nullableString,
+    line: nullableString,
+    form: nullableString,
+    size: nullableString,
+    gtin: nullableString,
+    model: nullableString,
+    category: nullableString,
+    variants: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { label: { type: 'string' }, quantity: { type: 'string' } },
+        required: ['label', 'quantity'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['name', 'brand', 'line', 'form', 'size', 'gtin', 'model', 'category', 'variants'],
+  additionalProperties: false,
+};
+
 export async function proposeFingerprint(
   ctx: Ctx,
   query: string,
@@ -168,6 +223,7 @@ export async function proposeFingerprint(
     system: FINGERPRINT_SYSTEM,
     prompt,
     maxTokens: 500,
+    schema: FINGERPRINT_SCHEMA,
   });
   const r = parseJson<{
     name: string;
@@ -208,9 +264,31 @@ export async function proposeFingerprint(
 }
 
 const MATCH_SYSTEM = `You decide whether shop listings are the exact product a user wants.
-Reply with JSON only: [{"i": number, "same": boolean, "reason": string}] where reason is max 8 English words.
+Reply with JSON only: {"verdicts": [{"i": number, "same": boolean, "reason": string}]} with one verdict per
+listing, where reason is max 8 English words.
 Different size, variant, colour line, bundle with extra items, refurbished or used means not the same.
 A multipack of the exact same item counts as the same.`;
+
+const MATCH_SCHEMA = {
+  type: 'object',
+  properties: {
+    verdicts: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          i: { type: 'integer' },
+          same: { type: 'boolean' },
+          reason: { type: 'string' },
+        },
+        required: ['i', 'same', 'reason'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['verdicts'],
+  additionalProperties: false,
+};
 
 export async function judgeDoubtfulMatches(
   ctx: Ctx,
@@ -227,8 +305,13 @@ export async function judgeDoubtfulMatches(
     system: MATCH_SYSTEM,
     prompt,
     maxTokens: 60 + titles.length * 30,
+    schema: MATCH_SCHEMA,
   });
-  const rows = parseJson<{ i: number; same: boolean; reason: string }[]>(text);
+  const parsed = parseJson<
+    | { verdicts?: { i: number; same: boolean; reason: string }[] }
+    | { i: number; same: boolean; reason: string }[]
+  >(text);
+  const rows = Array.isArray(parsed) ? parsed : (parsed.verdicts ?? []);
   return titles.map((_, i) => {
     const r = rows.find((x) => x.i === i);
     return { same: r?.same ?? false, reason: r?.reason ?? 'no verdict' };

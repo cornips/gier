@@ -187,13 +187,19 @@
     "summary": "Samenvatting",
     "stepsLabel": "Stappen",
     "exclusionPlaceholder": "bv. navulling, travel size",
-    "each": "per stuk"
+    "each": "per stuk",
+    "searchingHint": "Gier zoekt het product op. Dat duurt meestal tot een halve minuut.",
+    "backgroundHint": "Een eerste speurtocht kan een paar minuten duren. Je hoeft niet te wachten: sluit de app of doe iets anders, Gier stuurt een melding als hij klaar is.",
+    "continueInBackground": "Verder op de achtergrond",
+    "referenceTitle": "Ter referentie",
+    "referenceHint": "Afbeelding van {{source}}.",
+    "referenceAlt": "Afbeelding van {{name}}"
   },
   "stores": {
     "title": "Winkelregister",
     "intro": "Elke winkel die een speurtocht doorstaat komt hier. Bij een nieuw product zoekt Gier eerst bij deze winkels.",
     "all": "Alle",
-    "fixed": "Vaste winkels",
+    "fixed": "Bekende winkels",
     "learned": "Geleerd",
     "doubt": "Twijfel",
     "blocked": "Geblokkeerd",
@@ -203,7 +209,7 @@
       "blocked": "Geblokkeerd"
     },
     "origin": {
-      "fixed": "Vaste winkel",
+      "fixed": "Bekende winkel",
       "learned": "Geleerd",
       "manual": "Zelf toegevoegd"
     },
@@ -218,7 +224,7 @@
     "trustIt": "Vertrouw",
     "block": "Blokkeer",
     "research": "Onderzoeken",
-    "add": "Vaste winkel toevoegen",
+    "add": "Winkel toevoegen",
     "addName": "Naam",
     "addUrl": "Website",
     "store": "Winkel",
@@ -231,7 +237,29 @@
     "preference": "Voorkeur",
     "preferenceHint": "Tel deze winkel alleen als goedkoopste als hij minstens zoveel goedkoper is dan de volgende winkel.",
     "preferenceNone": "Geen",
-    "preferenceSaved": "Voorkeur opgeslagen"
+    "preferenceSaved": "Voorkeur opgeslagen",
+    "toggleTrust": "{{store}}: {{current}}. Tik om {{next}} te maken.",
+    "productsCount": "{{count}} producten",
+    "backToWelcome": "Terug naar de start",
+    "loginPage": "Inlogpagina",
+    "startingBrowser": "Browser starten bij Cloudflare…",
+    "loginExpired": "Het inlogvenster is verlopen. Start opnieuw als je klaar bent.",
+    "remoteType": "Typ hier op je telefoon",
+    "remoteTypeHint": "Tik eerst op het veld in het winkelvenster hierboven, typ dan hier en tik op versturen. Je tekst gaat via je eigen Gier-server rechtstreeks naar dat veld en wordt niet bewaard.",
+    "remoteShow": "Toon tekst",
+    "remoteSend": "Tekst versturen",
+    "remoteNext": "Volgend veld",
+    "remoteEnter": "Enter",
+    "remoteBackspace": "Laatste teken wissen",
+    "errors": {
+      "browser_run_not_configured": "Cloudflare Browser Run is niet ingesteld (CLOUDFLARE_ACCOUNT_ID en CLOUDFLARE_API_TOKEN).",
+      "browser_run_rate_limited": "Cloudflare is nog bezig met een eerdere browser. Wacht ongeveer een halve minuut en probeer het opnieuw.",
+      "browser_run_daily_limit": "De dagelijkse Browser Run-tijd van je Cloudflare-plan is op. Probeer het morgen opnieuw.",
+      "browser_run_unauthorized": "Cloudflare weigert de API-token. Controleer of die de permissie \"Browser Run: Edit\" heeft.",
+      "browser_run_failed": "De browser bij Cloudflare starten is mislukt. Probeer het zo opnieuw.",
+      "login_url_outside_store": "De inlogpagina moet op de eigen website van de winkel staan."
+    },
+    "loginPageEdit": "Wijzig de pagina waar het inloggen begint"
   },
   "notifications": {
     "title": "Meldingen",
@@ -307,10 +335,12 @@
     "installHint": "Nodig voor meldingen op iPhone",
     "push": "Meldingen toestaan",
     "pushHint": "Alleen bij deals en jouw drempels",
-    "stores": "Jouw vaste winkels",
+    "stores": "Jouw bekende winkels",
     "storesHint": "Hier zoekt Gier altijd eerst",
     "first": "Volg je eerste product",
-    "later": "Later"
+    "later": "Later",
+    "storesReview": "Bekijk",
+    "installIos": "In Safari: tik op Deel en dan op \"Zet op beginscherm\". Nodig voor meldingen op iPhone."
   },
   "common": {
     "loading": "Laden…",
@@ -342,5 +372,15 @@
     "no_prices": "Nog geen prijzen",
     "not_found": "Niet gevonden",
     "error": "Fout"
+  },
+  "install": {
+    "title": "Installeer Gier als app",
+    "iosBefore": "Tik op",
+    "share": "Deel",
+    "iosAfter": "en dan op \"Zet op beginscherm\". iPhone stuurt alleen meldingen naar geïnstalleerde apps.",
+    "prompt": "Opent schermvullend en kan je meldingen sturen.",
+    "manual": "Open het browsermenu en kies \"App installeren\" of \"Toevoegen aan startscherm\".",
+    "action": "Installeren",
+    "dismiss": "Nu niet"
   }
 }

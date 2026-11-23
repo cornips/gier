@@ -31,10 +31,18 @@ import {
 import type { Ctx } from './context';
 import { generateAdvice } from './services/advice';
 import { AiUnavailable, proposeFingerprint, spentThisMonthEur } from './services/ai';
+import { proxyImage, referenceImage } from './services/images';
 import { createDefaultAlerts } from './services/alerts';
-import { browserRunAvailable, getHandoff, startLoginHandoff } from './services/browser-run';
+import {
+  browserRunAvailable,
+  BrowserRunError,
+  cancelHandoff,
+  getHandoff,
+  startLoginHandoff,
+  typeIntoHandoff,
+} from './services/browser-run';
 import { checkListing, fetchOffer, recordObservation } from './services/checker';
-import { startDiscovery } from './services/discovery';
+import { markRunSeen, startDiscovery } from './services/discovery';
 import { notify } from './services/notify';
 import { listProducts, productDetail } from './services/products';
 import { braveSpentThisMonth, webSearch } from './services/search';
@@ -466,10 +474,12 @@ export function createApp(ctx: Ctx) {
         proposal.category,
       );
       proposal.fingerprint.exclude = learnedForCategory.map((r) => r.term);
+      const reference = await referenceImage(ctx, proposal.name, search.hits).catch(() => null);
       return c.json({
         source: 'ai',
         search: search.provider,
         ...proposal,
+        reference,
         learned: learnedForCategory,
         alwaysExcluded: ALWAYS_EXCLUDE,
       });
@@ -478,9 +488,11 @@ export function createApp(ctx: Ctx) {
       const top = search.hits[0];
       const fp = fingerprintFromTitle(top?.title ?? query);
       fp.exclude = learned.map((r) => r.term);
+      const reference = await referenceImage(ctx, fp.title, search.hits).catch(() => null);
       return c.json({
         source: 'rules',
         search: search.provider,
+        reference,
         name: fp.title,
         category: null,
         variants: [],
@@ -511,8 +523,15 @@ export function createApp(ctx: Ctx) {
     return c.json({ runId }, 202);
   });
 
+  // Product images from shops, fetched by Gier so the browser never contacts shops directly.
+  api.get('/img', async (c) => {
+    const u = c.req.query('u');
+    return u ? proxyImage(ctx, u) : c.json({ error: 'invalid_input' }, 400);
+  });
+
   api.get('/discovery/:id', (c) => {
     const id = idParam(c.req.param('id'));
+    if (id) markRunSeen(id);
     const run = id
       ? ctx.db.select().from(discoveryRuns).where(eq(discoveryRuns.id, id)).get()
       : null;
@@ -562,15 +581,25 @@ export function createApp(ctx: Ctx) {
         category: z.string().optional(),
         /** ADR-013: count this store as cheapest only when it beats the others by this %. 0 = no penalty. */
         preferenceThresholdPct: z.number().min(0).max(50).optional(),
+        /** ADR-014: page where the login handoff starts; must be on the store's own domain. */
+        loginUrl: z.string().url().nullish(),
       })
       .parse(await c.req.json());
-    const { preferenceThresholdPct, ...fields } = body;
+    const { preferenceThresholdPct, loginUrl, ...fields } = body;
     const store = ctx.db.select().from(stores).where(eq(stores.id, id)).get();
     if (!store) return c.json({ error: 'not_found' }, 404);
+    if (loginUrl && domainOf(loginUrl) !== store.domain)
+      return c.json({ error: 'login_url_outside_store' }, 400);
     const rules =
-      preferenceThresholdPct === undefined
+      preferenceThresholdPct === undefined && loginUrl === undefined
         ? undefined
-        : { ...(store.rules ?? {}), preferenceThresholdPct: preferenceThresholdPct || undefined };
+        : {
+            ...(store.rules ?? {}),
+            ...(preferenceThresholdPct === undefined
+              ? {}
+              : { preferenceThresholdPct: preferenceThresholdPct || undefined }),
+            ...(loginUrl === undefined ? {} : { loginUrl: loginUrl ?? undefined }),
+          };
     ctx.db
       .update(stores)
       .set({ ...(fields as Partial<typeof stores.$inferInsert>), ...(rules ? { rules } : {}) })
@@ -587,16 +616,48 @@ export function createApp(ctx: Ctx) {
     const { loginUrl } = z
       .object({ loginUrl: z.string().url().optional() })
       .parse(await c.req.json().catch(() => ({})));
-    const target = loginUrl ?? `https://www.${store.domain}/`;
+    const target = loginUrl ?? store.rules?.loginUrl ?? `https://www.${store.domain}/`;
     if (domainOf(target) !== store.domain) return c.json({ error: 'login_url_outside_store' }, 400);
-    const handoff = await startLoginHandoff(ctx, store.id, target);
-    return c.json(handoff, 202);
+    // Remember a login page the user corrected, for the next time.
+    if (loginUrl && loginUrl !== store.rules?.loginUrl)
+      ctx.db
+        .update(stores)
+        .set({ rules: { ...(store.rules ?? {}), loginUrl } })
+        .where(eq(stores.id, store.id))
+        .run();
+    try {
+      return c.json(await startLoginHandoff(ctx, store.id, target), 202);
+    } catch (e) {
+      if (!(e instanceof BrowserRunError)) throw e;
+      console.warn(`Browser Run: ${e.message}`);
+      const status =
+        e.code === 'browser_run_failed' ? 502 : e.code === 'browser_run_unauthorized' ? 401 : 429;
+      return c.json({ error: e.code }, status);
+    }
   });
 
   api.get('/handoffs/:id', (c) => {
     const h = getHandoff(c.req.param('id'));
     return h ? c.json(h) : c.json({ error: 'not_found' }, 404);
   });
+
+  // Relays typing to the remote browser; phones get no keyboard inside Live View (ADR-014).
+  api.post('/handoffs/:id/input', async (c) => {
+    const body = z
+      .object({
+        text: z.string().max(500).optional(),
+        key: z.enum(['Enter', 'Tab', 'Backspace']).optional(),
+      })
+      .parse(await c.req.json());
+    const ok = await typeIntoHandoff(c.req.param('id'), body);
+    return ok ? c.json({ ok: true }) : c.json({ error: 'not_found' }, 404);
+  });
+
+  api.delete('/handoffs/:id', async (c) =>
+    (await cancelHandoff(c.req.param('id')))
+      ? c.json({ ok: true })
+      : c.json({ error: 'not_found' }, 404),
+  );
 
   // Notifications
   api.get('/notifications', (c) =>

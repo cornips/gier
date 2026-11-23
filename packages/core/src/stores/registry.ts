@@ -37,6 +37,8 @@ export interface StoreRules {
   requiresLogin?: boolean;
   /** Prices on the site exclude VAT (wholesale). */
   pricesExcludeVat?: boolean;
+  /** Page where the login handoff starts (ADR-014). Defaults to the store's home page. */
+  loginUrl?: string;
   /** Mostly physical store; online assortment is limited. */
   limitedOnline?: boolean;
 }
@@ -98,7 +100,7 @@ export const FIXED_STORES: StoreSeed[] = [
     name: 'Makro',
     domain: 'makro.nl',
     category: 'wholesale',
-    rules: { requiresLogin: true, pricesExcludeVat: true },
+    rules: { requiresLogin: true, pricesExcludeVat: true, loginUrl: 'https://my.makro.nl/' },
   },
   { name: 'Gall & Gall', domain: 'gall.nl', category: 'liquor' },
   { name: 'Dirck III', domain: 'dirckiii.nl', category: 'liquor', verify: true },

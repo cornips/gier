@@ -39,6 +39,9 @@ const MESSAGES: Record<Language, Messages> = {
     'store.attention.body': 'Could not read the price of {product} 3 times ({error}).',
     'discovery.new.title': 'New store found · {product}',
     'discovery.new.body': '{count} new trusted store(s) followed automatically.',
+    'discovery.done.title': 'Search done · {product}',
+    'discovery.done.body':
+      'Gier now follows {count} store(s). Open the product to see what it found.',
     'digest.title.deals': 'Weekly digest · {count} good deal(s)',
     'digest.title.none': 'Weekly digest · no notable deals',
     'digest.deal': '• {product}: {price} at {store}',
@@ -70,6 +73,9 @@ const MESSAGES: Record<Language, Messages> = {
     'store.attention.body': 'Prijs van {product} 3× niet uitgelezen ({error}).',
     'discovery.new.title': 'Nieuwe winkel gevonden · {product}',
     'discovery.new.body': '{count} nieuwe betrouwbare winkel(s) automatisch gevolgd.',
+    'discovery.done.title': 'Speurtocht klaar · {product}',
+    'discovery.done.body':
+      'Gier volgt nu {count} winkel(s). Open het product om te zien wat het vond.',
     'digest.title.deals': 'Weekoverzicht · {count} goede deal(s)',
     'digest.title.none': 'Weekoverzicht · geen bijzondere deals',
     'digest.deal': '• {product}: {price} bij {store}',

@@ -2,18 +2,32 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Bell, Check, Share, Store } from 'lucide-react';
+import { Bell, Check, Download, Share, Store } from 'lucide-react';
 import { api } from '@/lib/api';
-import { enablePush, isStandalone, pushSupported } from '@/lib/push';
+import { promptInstall, useInstall } from '@/lib/install';
+import { enablePush, pushSupported } from '@/lib/push';
 import { LogoMark } from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 
-/** First run on a phone: install, notifications, fixed stores, first product. */
+export const STORES_REVIEWED = 'gier.storesReviewed';
+
+const storesReviewed = () => {
+  try {
+    return localStorage.getItem(STORES_REVIEWED) === '1';
+  } catch {
+    return false;
+  }
+};
+
+/** First run on a phone: install, notifications, known stores, first product. */
 export default function WelcomePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const stores = useQuery({ queryKey: ['stores'], queryFn: api.stores });
-  const [push, setPush] = useState<string | null>(null);
+  const { platform } = useInstall();
+  const [push, setPush] = useState<string | null>(() =>
+    pushSupported() && Notification.permission === 'granted' ? 'on' : null,
+  );
   const fixed = stores.data?.filter((s) => s.isFixed) ?? [];
   const finish = (to: string) => {
     try {
@@ -26,10 +40,20 @@ export default function WelcomePage() {
 
   const steps = [
     {
-      icon: Share,
+      icon: platform === 'prompt' ? Download : Share,
       title: t('welcome.install'),
-      hint: t('welcome.installHint'),
-      done: isStandalone(),
+      hint:
+        platform === 'ios'
+          ? t('welcome.installIos')
+          : platform === 'manual'
+            ? t('install.manual')
+            : t('welcome.installHint'),
+      done: platform === 'installed',
+      action: platform === 'prompt' && (
+        <Button size="sm" variant="outline" onClick={() => void promptInstall()}>
+          {t('install.action')}
+        </Button>
+      ),
     },
     {
       icon: Bell,
@@ -51,10 +75,10 @@ export default function WelcomePage() {
             .map((s) => s.name)
             .join(', ')}${fixed.length > 6 ? ` +${fixed.length - 6}` : ''}`
         : t('welcome.storesHint'),
-      done: fixed.length > 0,
+      done: storesReviewed(),
       action: (
         <Button size="sm" variant="ghost" asChild>
-          <Link to="/stores">{t('nav.stores')}</Link>
+          <Link to="/stores?from=welcome">{t('welcome.storesReview')}</Link>
         </Button>
       ),
     },
@@ -86,7 +110,7 @@ export default function WelcomePage() {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block font-semibold">{title}</span>
-                <span className="block truncate text-sm text-muted-foreground">{hint}</span>
+                <span className="line-clamp-2 block text-sm text-muted-foreground">{hint}</span>
               </span>
               {action}
             </li>

@@ -179,6 +179,8 @@ export interface DiscoveryCandidate {
   trust: 'trusted' | 'doubt' | 'excluded';
   trustReasons: string[];
   followed: boolean;
+  /** Product image on the shop page, shown through the image proxy. */
+  imageUrl?: string | null;
 }
 
 export const discoveryRuns = sqliteTable('discovery_runs', {

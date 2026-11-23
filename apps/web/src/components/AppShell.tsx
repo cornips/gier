@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Bell, Coins, Menu, Settings, Store } from 'lucide-react';
+import { InstallBanner } from './InstallBanner';
 import { Wordmark } from './Logo';
 import { SearchCommand, SearchTrigger } from './SearchCommand';
 import { Button } from './ui/button';
@@ -139,6 +140,10 @@ export function AppShell() {
           </div>
         </div>
       </header>
+
+      <div className="px-4 md:hidden">
+        <InstallBanner />
+      </div>
 
       <main id="main" className="mx-auto max-w-6xl px-4 pt-6">
         <Outlet context={{ openSearch: () => setSearchOpen(true) }} />

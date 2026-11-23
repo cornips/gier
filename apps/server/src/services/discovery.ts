@@ -90,6 +90,11 @@ interface RunInput {
   useAi: boolean;
 }
 
+/** When the web app last polled a run. A run that finishes unwatched sends a notification. */
+const lastSeen = new Map<number, number>();
+export const markRunSeen = (id: number) => lastSeen.set(id, Date.now());
+const watched = (id: number) => Date.now() - (lastSeen.get(id) ?? 0) < 20_000;
+
 function updateRun(ctx: Ctx, id: number, patch: Partial<typeof discoveryRuns.$inferInsert>) {
   ctx.db.update(discoveryRuns).set(patch).where(eq(discoveryRuns.id, id)).run();
 }
@@ -215,7 +220,8 @@ export async function runDiscovery(
         };
       });
     } catch (e) {
-      if (!(e instanceof AiUnavailable)) throw e;
+      // Without a verdict the doubtful offers stay doubtful; the user decides in the wizard.
+      if (!(e instanceof AiUnavailable)) console.warn('AI matching failed', e);
     }
   }
   updateRun(ctx, runId, { stage: 'trust' });
@@ -273,6 +279,7 @@ export async function runDiscovery(
       trust: trust.verdict,
       trustReasons: trust.reasons,
       followed: false,
+      imageUrl: m.offer!.image ? new URL(m.offer!.image, m.url).toString() : null,
       _store: known,
       _offer: m.offer,
     });
@@ -319,12 +326,25 @@ export async function runDiscovery(
       recordObservation(ctx, listing!, c._offer!);
       c.followed = true;
     }
+    const image = toFollow.find((c) => c.imageUrl)?.imageUrl;
     ctx.db
       .update(products)
-      .set({ lastDiscoveryAt: ctx.now() })
+      .set({
+        lastDiscoveryAt: ctx.now(),
+        ...(image && !product.imageUrl ? { imageUrl: image } : {}),
+      })
       .where(eq(products.id, product.id))
       .run();
-    if (newStores && product.lastDiscoveryAt) {
+    if (!product.lastDiscoveryAt && !watched(runId)) {
+      // The first search for a product takes a while; tell the user when it is done.
+      const { t } = translator(ctx);
+      await notify(ctx, {
+        productId: product.id,
+        kind: 'store',
+        title: t('discovery.done.title', { product: product.name }),
+        body: t('discovery.done.body', { count: toFollow.length }),
+      });
+    } else if (newStores && product.lastDiscoveryAt) {
       await notify(ctx, {
         productId: product.id,
         kind: 'store',

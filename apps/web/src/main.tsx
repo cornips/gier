@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { registerSW } from 'virtual:pwa-register';
 import './index.css';
+import './lib/install';
 import i18n from './i18n';
 import { api, BASE } from './lib/api';
 import { App } from './App';

@@ -187,13 +187,19 @@
     "summary": "Summary",
     "stepsLabel": "Steps",
     "exclusionPlaceholder": "e.g. refill, travel size",
-    "each": "each"
+    "each": "each",
+    "searchingHint": "Gier is looking the product up. This usually takes up to half a minute.",
+    "backgroundHint": "A first search can take a few minutes. You do not have to wait: close the app or do something else, Gier sends a notification when it is done.",
+    "continueInBackground": "Continue in the background",
+    "referenceTitle": "For reference",
+    "referenceHint": "Picture from {{source}}.",
+    "referenceAlt": "Picture of {{name}}"
   },
   "stores": {
     "title": "Store registry",
     "intro": "Every store that passes a discovery ends up here. For a new product Gier searches these stores first.",
     "all": "All",
-    "fixed": "Fixed stores",
+    "fixed": "Known stores",
     "learned": "Learned",
     "doubt": "In doubt",
     "blocked": "Blocked",
@@ -203,7 +209,7 @@
       "blocked": "Blocked"
     },
     "origin": {
-      "fixed": "Fixed store",
+      "fixed": "Known store",
       "learned": "Learned",
       "manual": "Added by you"
     },
@@ -218,7 +224,7 @@
     "trustIt": "Trust",
     "block": "Block",
     "research": "Investigate",
-    "add": "Add fixed store",
+    "add": "Add store",
     "addName": "Name",
     "addUrl": "Website",
     "store": "Store",
@@ -231,7 +237,29 @@
     "preference": "Preference",
     "preferenceHint": "Only count this store as cheapest when it is at least this much cheaper than the next store.",
     "preferenceNone": "None",
-    "preferenceSaved": "Preference saved"
+    "preferenceSaved": "Preference saved",
+    "toggleTrust": "{{store}}: {{current}}. Tap to make it {{next}}.",
+    "productsCount": "{{count}} products",
+    "backToWelcome": "Back to getting started",
+    "loginPage": "Login page",
+    "startingBrowser": "Starting a browser at Cloudflare…",
+    "loginExpired": "The login window expired. Start again when you are ready.",
+    "remoteType": "Type here on your phone",
+    "remoteTypeHint": "First tap the field in the store window above, then type here and tap send. Your text goes straight to that field via your own Gier server and is not stored.",
+    "remoteShow": "Show text",
+    "remoteSend": "Send text",
+    "remoteNext": "Next field",
+    "remoteEnter": "Enter",
+    "remoteBackspace": "Delete last character",
+    "errors": {
+      "browser_run_not_configured": "Cloudflare Browser Run is not configured (CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN).",
+      "browser_run_rate_limited": "Cloudflare is still busy with an earlier browser. Wait about half a minute and try again.",
+      "browser_run_daily_limit": "The daily Browser Run allowance of your Cloudflare plan is used up. Try again tomorrow.",
+      "browser_run_unauthorized": "Cloudflare refused the API token. Check that it has the \"Browser Run: Edit\" permission.",
+      "browser_run_failed": "Starting the browser at Cloudflare failed. Try again in a moment.",
+      "login_url_outside_store": "The login page must be on the store's own website."
+    },
+    "loginPageEdit": "Change the page where the login starts"
   },
   "notifications": {
     "title": "Notifications",
@@ -307,10 +335,12 @@
     "installHint": "Required for notifications on iPhone",
     "push": "Allow notifications",
     "pushHint": "Only for deals and your thresholds",
-    "stores": "Your fixed stores",
+    "stores": "Your known stores",
     "storesHint": "Gier always searches here first",
     "first": "Track your first product",
-    "later": "Later"
+    "later": "Later",
+    "storesReview": "View",
+    "installIos": "In Safari: tap Share, then \"Add to Home Screen\". Needed for notifications on iPhone."
   },
   "common": {
     "loading": "Loading…",
@@ -342,5 +372,15 @@
     "no_prices": "No prices yet",
     "not_found": "Not found",
     "error": "Error"
+  },
+  "install": {
+    "title": "Install Gier as an app",
+    "iosBefore": "Tap",
+    "share": "Share",
+    "iosAfter": "and then \"Add to Home Screen\". iPhone only sends notifications to installed apps.",
+    "prompt": "Opens full screen and can send you notifications.",
+    "manual": "Open the browser menu and choose \"Install app\" or \"Add to Home screen\".",
+    "action": "Install",
+    "dismiss": "Not now"
   }
 }

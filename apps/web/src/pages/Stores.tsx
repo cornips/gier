@@ -1,8 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { ExternalLink, KeyRound, Loader2, Plus, ShieldCheck, ShieldOff } from 'lucide-react';
+import {
+  ArrowLeft,
+  CornerDownLeft,
+  Delete,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Loader2,
+  Plus,
+  Send,
+} from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import type { StoreRow, Trust } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -18,6 +30,7 @@ import {
 } from '@/components/ui/dialog';
 import { ErrorState, PageSpinner } from '@/components/States';
 import { cn } from '@/lib/utils';
+import { STORES_REVIEWED } from './Welcome';
 
 type Filter = 'all' | 'fixed' | 'learned' | 'doubt' | 'blocked';
 const FILTERS: Record<Filter, (s: StoreRow) => boolean> = {
@@ -32,6 +45,12 @@ const TRUST_STYLE: Record<Trust, string> = {
   doubt: 'bg-amber-200 text-amber-950',
   blocked: 'bg-rise text-rise-foreground',
 };
+/** Tapping the label: trusted ⇄ blocked; a store in doubt becomes trusted. */
+const NEXT_TRUST: Record<Trust, Trust> = {
+  trusted: 'blocked',
+  blocked: 'trusted',
+  doubt: 'trusted',
+};
 
 export default function StoresPage() {
   const { t } = useTranslation();
@@ -41,11 +60,58 @@ export default function StoresPage() {
   const [q, setQ] = useState('');
   const [login, setLogin] = useState<StoreRow | null>(null);
   const [adding, setAdding] = useState(false);
+  const [params] = useSearchParams();
+  const fromWelcome = params.get('from') === 'welcome';
+
+  useEffect(() => {
+    if (!fromWelcome) return;
+    try {
+      localStorage.setItem(STORES_REVIEWED, '1');
+    } catch {
+      /* ignore */
+    }
+  }, [fromWelcome]);
 
   const update = useMutation({
     mutationFn: ({ id, trust }: { id: number; trust: Trust }) => api.updateStore(id, { trust }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['stores'] }),
+    onError: (e) => toast.error(String(e)),
   });
+  const trustLabel = (s: StoreRow) => (
+    <button
+      type="button"
+      onClick={() => update.mutate({ id: s.id, trust: NEXT_TRUST[s.trust] })}
+      aria-label={t('stores.toggleTrust', {
+        store: s.name,
+        current: t(`stores.trust.${s.trust}`),
+        next: t(`stores.trust.${NEXT_TRUST[s.trust]}`),
+      })}
+      className={cn(
+        'rounded-full px-2.5 py-0.5 text-xs font-semibold transition hover:ring-2 hover:ring-ring/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+        TRUST_STYLE[s.trust],
+      )}
+    >
+      {t(`stores.trust.${s.trust}`)}
+    </button>
+  );
+  const loginState = (s: StoreRow) =>
+    s.requiresLogin && (
+      <span
+        className={cn(
+          'inline-flex items-center gap-1 text-xs',
+          s.hasSession ? 'text-foreground' : 'text-rise-foreground',
+        )}
+      >
+        <KeyRound className="size-3" aria-hidden />{' '}
+        {s.hasSession ? t('stores.loggedIn') : t('stores.loginNeeded')}
+      </span>
+    );
+  const loginButton = (s: StoreRow) =>
+    s.requiresLogin && (
+      <Button size="sm" variant="outline" onClick={() => setLogin(s)}>
+        <KeyRound /> {t('stores.login')}
+      </Button>
+    );
 
   const list = useMemo(
     () =>
@@ -61,8 +127,15 @@ export default function StoresPage() {
 
   return (
     <div className="grid grid-cols-1 gap-6">
+      {fromWelcome && (
+        <Button asChild variant="secondary" className="justify-self-start">
+          <Link to="/welcome">
+            <ArrowLeft /> {t('stores.backToWelcome')}
+          </Link>
+        </Button>
+      )}
       <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h1 className="font-display text-3xl font-extrabold tracking-tight">
             {t('stores.title')}
           </h1>
@@ -98,11 +171,41 @@ export default function StoresPage() {
           onChange={(e) => setQ(e.target.value)}
           placeholder="Filter…"
           aria-label={t('stores.filterLabel')}
-          className="ml-auto w-48"
+          className="w-full sm:ml-auto sm:w-48"
         />
       </div>
 
-      <div className="overflow-x-auto rounded-2xl border bg-card">
+      {/* Phones get a list; the table needs width. */}
+      <ul className="grid gap-2 md:hidden">
+        {list.map((s) => (
+          <li key={s.id} className="grid gap-2 rounded-2xl border bg-card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate font-semibold">{s.name}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {s.domain ?? '–'} · {t(`stores.origin.${s.origin}`)}
+                </p>
+              </div>
+              {trustLabel(s)}
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+              <span className="tabular">
+                {t('stores.productsCount', { count: s.products })}
+                {s.failCount > 0 && (
+                  <span className="text-rise-foreground">
+                    {' '}
+                    · {t('stores.failed', { count: s.failCount })}
+                  </span>
+                )}
+              </span>
+              {loginState(s)}
+            </div>
+            {s.requiresLogin && <div>{loginButton(s)}</div>}
+          </li>
+        ))}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-2xl border bg-card md:block">
         <table className="w-full text-sm">
           <thead className="border-b text-left text-xs text-muted-foreground">
             <tr>
@@ -134,25 +237,10 @@ export default function StoresPage() {
                   </p>
                 </td>
                 <td className="px-4 py-3">
-                  <span
-                    className={cn(
-                      'rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                      TRUST_STYLE[s.trust],
-                    )}
-                  >
-                    {t(`stores.trust.${s.trust}`)}
-                  </span>
-                  {s.requiresLogin && (
-                    <span
-                      className={cn(
-                        'ml-2 inline-flex items-center gap-1 text-xs',
-                        s.hasSession ? 'text-foreground' : 'text-rise-foreground',
-                      )}
-                    >
-                      <KeyRound className="size-3" aria-hidden />{' '}
-                      {s.hasSession ? t('stores.loggedIn') : t('stores.loginNeeded')}
-                    </span>
-                  )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {trustLabel(s)}
+                    {loginState(s)}
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-right tabular">{s.products}</td>
                 <td className="hidden px-4 py-3 text-muted-foreground md:table-cell">
@@ -171,33 +259,7 @@ export default function StoresPage() {
                   <PreferenceInput store={s} />
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex justify-end gap-1">
-                    {s.requiresLogin && (
-                      <Button size="sm" variant="outline" onClick={() => setLogin(s)}>
-                        <KeyRound /> {t('stores.login')}
-                      </Button>
-                    )}
-                    {s.trust !== 'trusted' && (
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        aria-label={`${t('stores.trustIt')} ${s.name}`}
-                        onClick={() => update.mutate({ id: s.id, trust: 'trusted' })}
-                      >
-                        <ShieldCheck />
-                      </Button>
-                    )}
-                    {s.trust !== 'blocked' && (
-                      <Button
-                        size="icon-sm"
-                        variant="ghost"
-                        aria-label={`${t('stores.block')} ${s.name}`}
-                        onClick={() => update.mutate({ id: s.id, trust: 'blocked' })}
-                      >
-                        <ShieldOff />
-                      </Button>
-                    )}
-                  </div>
+                  <div className="flex justify-end">{loginButton(s)}</div>
                 </td>
               </tr>
             ))}
@@ -252,11 +314,29 @@ function PreferenceInput({ store }: { store: StoreRow }) {
   );
 }
 
-/** ADR-014: the user logs in inside a remote browser (Cloudflare Browser Run Live View); Gier keeps only the session. */
+const BROWSER_RUN_ERRORS = [
+  'browser_run_not_configured',
+  'browser_run_rate_limited',
+  'browser_run_daily_limit',
+  'browser_run_unauthorized',
+  'browser_run_failed',
+  'login_url_outside_store',
+];
+
+/**
+ * ADR-014: the user logs in inside a remote browser (Cloudflare Browser Run Live View); Gier keeps only
+ * the session. Phones get no keyboard inside Live View, so text can be typed here and is relayed to the
+ * field that has focus over there.
+ */
 function LoginDialog({ store, onClose }: { store: StoreRow; onClose: () => void }) {
   const { t } = useTranslation();
   const qc = useQueryClient();
-  const start = useMutation({ mutationFn: () => api.startLogin(store.id) });
+  const initialUrl =
+    (store.rules?.loginUrl as string | undefined) ?? `https://www.${store.domain ?? ''}/`;
+  const [loginUrl, setLoginUrl] = useState(initialUrl);
+  const start = useMutation({
+    mutationFn: () => api.startLogin(store.id, loginUrl !== initialUrl ? loginUrl : undefined),
+  });
   const handoff = useQuery({
     queryKey: ['handoff', start.data?.id],
     queryFn: () => api.handoff(start.data!.id),
@@ -264,58 +344,105 @@ function LoginDialog({ store, onClose }: { store: StoreRow; onClose: () => void 
     refetchInterval: (q) => (q.state.data?.status === 'waiting' || !q.state.data ? 2000 : false),
   });
   const h = handoff.data ?? start.data;
+  const handoffId = useRef<string | null>(null);
+  handoffId.current = h?.status === 'waiting' ? h.id : null;
+
   useEffect(() => {
     if (h?.status === 'done') void qc.invalidateQueries({ queryKey: ['stores'] });
   }, [h?.status, qc]);
+  // Closing the dialog closes the remote browser, so it stops using Browser Run time.
+  useEffect(
+    () => () => {
+      if (handoffId.current) void api.cancelHandoff(handoffId.current);
+    },
+    [],
+  );
+
   const errorCode = start.error instanceof ApiError ? start.error.code : null;
+  const waiting = h?.status === 'waiting' && h.liveViewUrl;
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-h-[92dvh] max-w-3xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {t('stores.login')} · {store.name}
           </DialogTitle>
           <DialogDescription>{t('stores.loginHelp')}</DialogDescription>
         </DialogHeader>
-        {!start.data && !start.isPending && !start.isError && (
-          <Button onClick={() => start.mutate()} className="justify-self-start">
-            <KeyRound /> {t('stores.login')}
-          </Button>
+        {!start.data && !start.isPending && (
+          <form
+            className="grid gap-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              start.mutate();
+            }}
+          >
+            <Button type="submit" className="justify-self-start">
+              <KeyRound /> {start.isError ? t('common.retry') : t('stores.login')}
+            </Button>
+            <details className="text-sm">
+              <summary className="cursor-pointer text-muted-foreground">
+                {t('stores.loginPage')}: {loginUrl.replace(/^https?:\/\//, '')}
+              </summary>
+              <div className="mt-2 grid gap-1.5">
+                <Label htmlFor="login-url">{t('stores.loginPageEdit')}</Label>
+                <Input
+                  id="login-url"
+                  type="url"
+                  inputMode="url"
+                  value={loginUrl}
+                  onChange={(e) => setLoginUrl(e.target.value)}
+                />
+              </div>
+            </details>
+          </form>
         )}
-        {start.isPending && <PageSpinner />}
+        {start.isPending && (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
+            <Loader2 className="size-4 animate-spin" aria-hidden /> {t('stores.startingBrowser')}
+          </p>
+        )}
         {start.isError && (
-          <p className="text-sm text-rise-foreground">
-            {errorCode === 'browser_run_not_configured'
-              ? t('stores.browserRunMissing')
+          <p className="text-sm text-rise-foreground" role="alert">
+            {errorCode && BROWSER_RUN_ERRORS.includes(errorCode)
+              ? t(`stores.errors.${errorCode}`)
               : String(start.error)}
           </p>
         )}
-        {h?.status === 'waiting' && h.liveViewUrl && (
-          <div className="grid gap-2">
+        {waiting && (
+          <div className="grid gap-3">
             <iframe
               src={h.liveViewUrl}
               title={`${store.name} login`}
-              className="h-[60vh] w-full rounded-lg border bg-white"
+              className="h-[55dvh] w-full rounded-lg border bg-white"
             />
-            <a
-              href={h.liveViewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm underline-offset-4 hover:underline"
-            >
-              {t('stores.openWindow')} <ExternalLink className="size-3.5" aria-hidden />
-            </a>
-            <p className="flex items-center gap-2 text-xs text-muted-foreground" aria-live="polite">
-              <Loader2 className="size-3.5 animate-spin" aria-hidden /> {t('stores.waitingLogin')}
-            </p>
+            <RemoteKeyboard handoffId={h.id} />
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p
+                className="flex items-center gap-2 text-xs text-muted-foreground"
+                aria-live="polite"
+              >
+                <Loader2 className="size-3.5 animate-spin" aria-hidden /> {t('stores.waitingLogin')}
+              </p>
+              <a
+                href={h.liveViewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-sm underline-offset-4 hover:underline"
+              >
+                {t('stores.openWindow')} <ExternalLink className="size-3.5" aria-hidden />
+              </a>
+            </div>
           </div>
         )}
         {h?.status === 'done' && (
           <p className="rounded-lg bg-prey/40 p-3 text-sm">{t('stores.loginDone')}</p>
         )}
         {(h?.status === 'failed' || h?.status === 'expired') && (
-          <p className="text-sm text-rise-foreground">{h.error ?? h.status}</p>
+          <p className="text-sm text-rise-foreground" role="alert">
+            {h.status === 'expired' ? t('stores.loginExpired') : (h.error ?? h.status)}
+          </p>
         )}
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
@@ -324,6 +451,80 @@ function LoginDialog({ store, onClose }: { store: StoreRow; onClose: () => void 
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Types into the remote browser for phones, where Live View shows no keyboard. */
+function RemoteKeyboard({ handoffId }: { handoffId: string }) {
+  const { t } = useTranslation();
+  const [text, setText] = useState('');
+  const [masked, setMasked] = useState(true);
+  const send = useMutation({
+    mutationFn: (input: { text?: string; key?: 'Enter' | 'Tab' | 'Backspace' }) =>
+      api.handoffInput(handoffId, input),
+    onError: (e) => toast.error(String(e)),
+  });
+  const submit = (key?: 'Enter' | 'Tab') => {
+    if (!text && !key) return;
+    send.mutate({ text: text || undefined, key });
+    setText('');
+  };
+  return (
+    <form
+      className="grid gap-2 rounded-xl border bg-secondary/40 p-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit();
+      }}
+    >
+      <Label htmlFor="remote-text" className="text-sm">
+        {t('stores.remoteType')}
+      </Label>
+      <p className="text-xs text-muted-foreground">{t('stores.remoteTypeHint')}</p>
+      <div className="flex gap-2">
+        <Input
+          id="remote-text"
+          type={masked ? 'password' : 'text'}
+          autoComplete="off"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          className="min-w-0 flex-1"
+        />
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          aria-pressed={!masked}
+          aria-label={t('stores.remoteShow')}
+          onClick={() => setMasked((m) => !m)}
+        >
+          {masked ? <Eye /> : <EyeOff />}
+        </Button>
+        <Button type="submit" size="icon" aria-label={t('stores.remoteSend')} disabled={!text}>
+          <Send />
+        </Button>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" size="sm" variant="outline" onClick={() => submit('Tab')}>
+          {t('stores.remoteNext')}
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={() => submit('Enter')}>
+          <CornerDownLeft /> {t('stores.remoteEnter')}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          onClick={() => send.mutate({ key: 'Backspace' })}
+          aria-label={t('stores.remoteBackspace')}
+        >
+          <Delete />
+        </Button>
+      </div>
+    </form>
   );
 }
 

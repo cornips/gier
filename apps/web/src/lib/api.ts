@@ -23,6 +23,10 @@ export const BASE =
   typeof document === 'undefined' ? '' : new URL(document.baseURI).pathname.replace(/\/$/, '');
 export const API = `${BASE}/api`;
 
+/** Shop images go through Gier's image proxy, so the browser never contacts shops directly. */
+export const imageSrc = (url: string | null | undefined) =>
+  url ? `${API}/img?u=${encodeURIComponent(url)}` : undefined;
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -116,11 +120,20 @@ export const api = {
     request<StoreRow>('/stores', { method: 'POST', json: { name, url } }),
   updateStore: (
     id: number,
-    patch: Partial<{ trust: Trust; requiresLogin: boolean; preferenceThresholdPct: number }>,
+    patch: Partial<{
+      trust: Trust;
+      requiresLogin: boolean;
+      preferenceThresholdPct: number;
+      loginUrl: string | null;
+    }>,
   ) => request<{ ok: true }>(`/stores/${id}`, { method: 'PATCH', json: patch }),
   startLogin: (id: number, loginUrl?: string) =>
     request<Handoff>(`/stores/${id}/login`, { method: 'POST', json: loginUrl ? { loginUrl } : {} }),
   handoff: (id: string) => request<Handoff>(`/handoffs/${id}`),
+  handoffInput: (id: string, input: { text?: string; key?: 'Enter' | 'Tab' | 'Backspace' }) =>
+    request<{ ok: true }>(`/handoffs/${id}/input`, { method: 'POST', json: input }),
+  cancelHandoff: (id: string) =>
+    request<{ ok: true }>(`/handoffs/${id}`, { method: 'DELETE' }).catch(() => undefined),
   notifications: () => request<NotificationRow[]>('/notifications'),
   markRead: (ids?: number[]) =>
     request<{ ok: true }>('/notifications/read', { method: 'POST', json: ids ? { ids } : {} }),
