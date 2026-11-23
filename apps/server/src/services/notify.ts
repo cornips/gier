@@ -2,6 +2,7 @@ import * as webpush from 'web-push';
 import { eq } from 'drizzle-orm';
 import { notifications, pushSubscriptions, type Notification } from '@gier/db';
 import type { Ctx } from '../context';
+import { translator } from '../i18n';
 
 export interface NewNotification {
   productId?: number | null;
@@ -70,7 +71,11 @@ async function sendTelegram(ctx: Ctx, n: NewNotification): Promise<boolean> {
         chat_id: TELEGRAM_CHAT_ID,
         text: `*${escapeMd(n.title)}*\n${escapeMd(n.body)}`,
         parse_mode: 'MarkdownV2',
-        reply_markup: { inline_keyboard: [[{ text: 'Bekijk', url: link(ctx, n.productId) }]] },
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: translator(ctx).t('notify.open'), url: link(ctx, n.productId) }],
+          ],
+        },
       }),
     })
     .catch(() => null);

@@ -47,6 +47,7 @@ const MESSAGES: Record<Language, Messages> = {
     'digest.ai': 'AI this month: {cost}.',
     'push.test.title': 'Gier test',
     'push.test.body': 'Notifications work.',
+    'notify.open': 'View',
     'login.instructions': 'Log in to the shop, then click Done.',
   },
   nl: {
@@ -77,6 +78,7 @@ const MESSAGES: Record<Language, Messages> = {
     'digest.ai': 'AI deze maand: {cost}.',
     'push.test.title': 'Gier test',
     'push.test.body': 'Meldingen werken.',
+    'notify.open': 'Bekijk',
     'login.instructions': 'Log in bij de winkel en klik daarna op Klaar.',
   },
 };
