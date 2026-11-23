@@ -1,7 +1,13 @@
 // API shapes returned by apps/server. Kept by hand so the web build stays free of server deps.
-import type { DealLabel, Finding, Fingerprint, ProductVerdict } from '@gier/core/browser';
+import type {
+  DealLabel,
+  Finding,
+  Fingerprint,
+  ProductVerdict,
+  Promotion,
+} from '@gier/core/browser';
 
-export type { DealLabel, Finding, Fingerprint };
+export type { DealLabel, Finding, Fingerprint, Promotion };
 export type Trust = 'trusted' | 'doubt' | 'blocked';
 export type BudgetTier = 'none' | 'frugal' | 'normal' | 'generous';
 export type AdviceMode = 'auto' | 'on_request' | 'off';
@@ -62,6 +68,10 @@ export interface ListingView {
   referenceType: string | null;
   claimedDiscountPct: number | null;
   dealLabel: string | null;
+  /** The multi-buy promotion behind unitPriceCents, and a card-only one that would be cheaper. */
+  promotion: Promotion | null;
+  cardPromotion: { promotion: Promotion; unitCents: number } | null;
+  regularUnitCents: number | null;
   lastCheckedAt: string | null;
   lastError: string | null;
   findings: Finding[];
@@ -98,7 +108,8 @@ export interface FingerprintProposal {
   search: string;
   name: string;
   category: string | null;
-  variants: string[];
+  /** Other sizes or packs of the same product line, e.g. { label: '50 ml', quantity: '50 ml' }. */
+  variants: { label: string; quantity: string }[];
   costEur: number;
   fingerprint: Fingerprint;
   learned: { term: string; category: string | null; count: number }[];
@@ -123,6 +134,22 @@ export interface DiscoveryCandidate {
   trustReasons: string[];
   followed: boolean;
   imageUrl?: string | null;
+  promotion?: Promotion | null;
+  promoUnitCents?: number | null;
+  cardPromotion?: Promotion | null;
+  cardUnitCents?: number | null;
+}
+
+export interface DiscoveryStats {
+  searches?: number;
+  storeSearches?: number;
+  results?: number;
+  read?: number;
+  priced?: number;
+  matched?: number;
+  doubt?: number;
+  followed?: number;
+  unread?: { url: string; domain: string | null; reason: string }[];
 }
 
 export interface DiscoveryRun {
@@ -131,7 +158,7 @@ export interface DiscoveryRun {
   query: string;
   status: 'running' | 'done' | 'failed';
   stage: 'search' | 'extract' | 'match' | 'trust' | 'done';
-  stats: Record<string, number> | null;
+  stats: DiscoveryStats | null;
   candidates: DiscoveryCandidate[] | null;
   error: string | null;
 }

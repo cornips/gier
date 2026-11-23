@@ -1,5 +1,6 @@
 import { load, type CheerioAPI } from 'cheerio';
 import { parsePrice, type Cents } from '../money';
+import { parsePromotion, type Promotion } from '../deal/promotion';
 import type { Availability, ExtractedOffer, ReferenceType, SelectorConfig } from './types';
 
 type Json = Record<string, unknown>;
@@ -140,8 +141,14 @@ function fromJsonLd($: CheerioAPI): Partial<ExtractedOffer> | null {
       str(product.gtin14) ??
       str(product.gtin12) ??
       str(product.gtin8);
+    const description = str(product.description);
+    const size =
+      str(product.size) ??
+      str((product.weight as Json | undefined)?.value) ??
+      (description && description.length <= 40 && SIZE_HINT.test(description) ? description : null);
     return {
       name: str(product.name),
+      size,
       brand: str(product.brand),
       gtin: gtin ? gtin.replace(/\D/g, '') || null : null,
       mpn: str(product.mpn),
@@ -270,6 +277,71 @@ function fromSelectors($: CheerioAPI, config: SelectorConfig): Partial<Extracted
   return out;
 }
 
+const SIZE_HINT = /\d+(?:[.,]\d+)?\s*(?:ml|cl|dl|l|liter|g|gr|gram|kg)\b/i;
+
+/** Ancestors that hold other products (recommendations, carousels) or page chrome, not this offer. */
+const NOT_THIS_PRODUCT =
+  /recommend|related|similar|upsell|cross-?sell|carousel|swiper|slider|also|bought|review|footer|header|nav|menu|banner|cookie/i;
+const PROMO_SELECTOR = [
+  '[class*="promo" i]',
+  '[class*="actie" i]',
+  '[class*="deal" i]',
+  '[class*="sticker" i]',
+  '[class*="badge" i]',
+  '[class*="discount" i]',
+  '[class*="offer-label" i]',
+  '[data-promotion]',
+].join(',');
+
+/**
+ * Multi-buy promotions for the product on this page. Store selectors win; otherwise promotion-like
+ * elements outside recommendation blocks and page chrome. Deduplicated, at most four.
+ */
+function fromPromotions($: CheerioAPI, selector?: string): Promotion[] {
+  const found: Promotion[] = [];
+  const seen = new Set<string>();
+  const consider = (text: string) => {
+    const p = parsePromotion(text);
+    if (!p) return;
+    const key = `${p.kind}:${p.quantity}:${p.paid ?? ''}:${p.pct ?? ''}:${p.bundleCents ?? ''}:${p.requires}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    found.push(p);
+  };
+  const els = $(selector || PROMO_SELECTOR);
+  els.each((_, el) => {
+    if (found.length >= 4) return false;
+    const node = $(el);
+    if (!selector) {
+      const outside = node
+        .parents()
+        .toArray()
+        .some((a) => NOT_THIS_PRODUCT.test(`${$(a).attr('class') ?? ''} ${$(a).attr('id') ?? ''}`));
+      if (outside) return;
+      // Leaf-ish elements only: a whole section matching "promo" would mix several texts.
+      if (node.children().length > 6) return;
+    }
+    consider(node.text());
+    return;
+  });
+  return found;
+}
+
+/** Words from the product URL: shops often put "2-x-…-2-stuks" there while the name lacks it. */
+function urlWords(url: string): string | null {
+  try {
+    const segs = new URL(url).pathname
+      .split('/')
+      .filter((s) => /[a-z]/i.test(s) && s.includes('-'));
+    const longest = segs.sort((a, b) => b.length - a.length)[0];
+    return longest ? decodeURIComponent(longest).replace(/[-_]+/g, ' ').trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+const EAN_TEXT = /\b(?:ean|gtin)(?:[- ]?(?:code|nummer))?\s*[:：]?\s*(\d{8}|\d{12,14})\b/i;
+
 const EMPTY: Omit<ExtractedOffer, 'url'> = {
   name: null,
   brand: null,
@@ -287,6 +359,9 @@ const EMPTY: Omit<ExtractedOffer, 'url'> = {
   claimedDiscountPct: null,
   dealLabel: null,
   method: 'none',
+  titles: [],
+  size: null,
+  promotions: [],
 };
 
 const defined = <T extends object>(o: T): Partial<T> =>
@@ -311,6 +386,16 @@ export function extractOffer(
     merged.name =
       $('meta[property="og:title"]').attr('content')?.trim() || $('title').text().trim() || null;
   if (!merged.image) merged.image = $('meta[property="og:image"]').attr('content') ?? null;
+  merged.titles = [
+    $('h1').first().text().replace(/\s+/g, ' ').trim(),
+    $('meta[property="og:title"]').attr('content')?.trim(),
+    urlWords(url),
+  ].filter((t): t is string => Boolean(t) && t !== merged.name);
+  if (!merged.gtin) {
+    const m = EAN_TEXT.exec($('body').text());
+    if (m) merged.gtin = m[1]!;
+  }
+  merged.promotions = fromPromotions($, selectors?.promotion);
 
   const heur = fromHeuristics($, merged.priceCents);
   if (merged.referenceCents === null && heur.referenceCents) {

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes, useLocation, type Location } from 'react-router';
 import { AppShell } from './components/AppShell';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { PageSpinner } from './components/States';
 import { OverviewPage } from './pages/Overview';
 import { ProductDialog, ProductPage } from './pages/ProductDetail';
@@ -20,7 +21,7 @@ export function App() {
   const location = useLocation();
   const background = (location.state as { background?: Location } | null)?.background;
   return (
-    <>
+    <ErrorBoundary>
       <Suspense fallback={<PageSpinner />}>
         <Routes location={background ?? location}>
           <Route path="welcome" element={<WelcomePage />} />
@@ -41,6 +42,6 @@ export function App() {
           <Route path="p/:id" element={<ProductDialog />} />
         </Routes>
       )}
-    </>
+    </ErrorBoundary>
   );
 }

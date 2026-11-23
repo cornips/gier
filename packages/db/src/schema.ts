@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
-import type { Fingerprint, SelectorConfig, StoreCategory, StoreRules } from '@gier/core';
+import type { Fingerprint, Promotion, SelectorConfig, StoreCategory, StoreRules } from '@gier/core';
 
 const id = () => integer('id').primaryKey({ autoIncrement: true });
 const createdAt = () =>
@@ -110,6 +110,8 @@ export const pricePoints = sqliteTable(
       .default('none'),
     claimedDiscountPct: integer('claimed_discount_pct'),
     dealLabel: text('deal_label'),
+    /** Multi-buy promotions shown with this price (1+1 gratis, 2e halve prijs, …). */
+    promotions: text('promotions', { mode: 'json' }).$type<Promotion[]>(),
     isHeartbeat: integer('is_heartbeat', { mode: 'boolean' }).notNull().default(false),
   },
   (t) => [index('price_points_listing_idx').on(t.listingId, t.observedAt)],
@@ -181,6 +183,32 @@ export interface DiscoveryCandidate {
   followed: boolean;
   /** Product image on the shop page, shown through the image proxy. */
   imageUrl?: string | null;
+  /** Best multi-buy promotion that applies for this user, and the price per item with it. */
+  promotion?: Promotion | null;
+  promoUnitCents?: number | null;
+  /** A card-only promotion the user cannot use yet (no card for this store). */
+  cardPromotion?: Promotion | null;
+  cardUnitCents?: number | null;
+  gtin?: string | null;
+}
+
+/** A page Gier found but could not read during a discovery, and why. */
+export interface UnreadPage {
+  url: string;
+  domain: string | null;
+  reason: string;
+}
+
+export interface DiscoveryStats {
+  searches?: number;
+  storeSearches?: number;
+  results?: number;
+  read?: number;
+  priced?: number;
+  matched?: number;
+  doubt?: number;
+  followed?: number;
+  unread?: UnreadPage[];
 }
 
 export const discoveryRuns = sqliteTable('discovery_runs', {
@@ -193,7 +221,7 @@ export const discoveryRuns = sqliteTable('discovery_runs', {
   stage: text('stage', { enum: ['search', 'extract', 'match', 'trust', 'done'] })
     .notNull()
     .default('search'),
-  stats: text('stats', { mode: 'json' }).$type<Record<string, number>>(),
+  stats: text('stats', { mode: 'json' }).$type<DiscoveryStats>(),
   candidates: text('candidates', { mode: 'json' }).$type<DiscoveryCandidate[]>(),
   error: text('error'),
   startedAt: createdAt(),

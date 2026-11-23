@@ -125,6 +125,7 @@ export const api = {
       requiresLogin: boolean;
       preferenceThresholdPct: number;
       loginUrl: string | null;
+      loyaltyCard: boolean;
     }>,
   ) => request<{ ok: true }>(`/stores/${id}`, { method: 'PATCH', json: patch }),
   startLogin: (id: number, loginUrl?: string) =>

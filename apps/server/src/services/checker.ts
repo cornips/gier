@@ -40,6 +40,7 @@ export async function fetchOffer(
   ctx: Ctx,
   url: string,
   store: Store | null,
+  opts: { mayRender?: () => boolean } = {},
 ): Promise<{ offer: ExtractedOffer | null; html?: string; error?: string }> {
   const cookies = store ? sessionCookies(ctx, store) : [];
   const domain = domainOf(url) ?? '';
@@ -48,7 +49,7 @@ export async function fetchOffer(
   });
   let html = res.ok ? res.html : undefined;
   let offer = html ? extractOffer(html, res.url, store?.selectors ?? undefined) : null;
-  if (!offer?.priceCents && res.status !== 999) {
+  if (!offer?.priceCents && res.status !== 999 && (opts.mayRender?.() ?? true)) {
     const rendered = await renderHtml(ctx, url, cookies).catch(() => null);
     if (rendered) {
       html = rendered;
@@ -99,7 +100,8 @@ const sameObservation = (a: typeof pricePoints.$inferSelect, o: ExtractedOffer) 
   a.inStock === (o.availability !== 'out_of_stock') &&
   (a.referenceCents ?? null) === (o.referenceCents ?? null) &&
   (a.dealLabel ?? null) === (o.dealLabel ?? null) &&
-  (a.claimedDiscountPct ?? null) === (o.claimedDiscountPct ?? null);
+  (a.claimedDiscountPct ?? null) === (o.claimedDiscountPct ?? null) &&
+  JSON.stringify(a.promotions ?? []) === JSON.stringify(o.promotions ?? []);
 
 /** Stores a price point only when something changed, plus one heartbeat per day (ADR-004). */
 export function recordObservation(
@@ -140,6 +142,7 @@ const rowFrom = (listing: Listing, o: ExtractedOffer, at: Date) => ({
   referenceType: o.referenceType,
   claimedDiscountPct: o.claimedDiscountPct,
   dealLabel: o.dealLabel,
+  promotions: o.promotions?.length ? o.promotions : null,
 });
 
 export async function checkListing(ctx: Ctx, listing: Listing): Promise<CheckOutcome> {

@@ -33,7 +33,11 @@ export interface TrustResult {
 }
 
 export const YOUNG_DOMAIN_DAYS = 180;
-export const OUTLIER_RATIO = 0.7;
+/**
+ * Below this share of the median price an offer is suspicious. Real multi-buy deals and small shops are
+ * often 30% cheaper than big platforms, so only a much lower price counts.
+ */
+export const OUTLIER_RATIO = 0.5;
 
 export function scoreTrust(s: TrustSignals): TrustResult {
   const reasons: TrustReason[] = [];
@@ -49,8 +53,8 @@ export function scoreTrust(s: TrustSignals): TrustResult {
 
   let score = 0.5;
   if (s.domainAgeDays === null) {
+    // Unknown is not suspicious in itself (registries do not always tell); it just earns nothing.
     reasons.push('unknown_domain_age');
-    score -= 0.1;
   } else if (s.domainAgeDays < YOUNG_DOMAIN_DAYS) {
     reasons.push('young_domain');
     score -= 0.4;

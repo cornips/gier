@@ -193,7 +193,18 @@
     "continueInBackground": "Continue in the background",
     "referenceTitle": "For reference",
     "referenceHint": "Picture from {{source}}.",
-    "referenceAlt": "Picture of {{name}}"
+    "referenceAlt": "Picture of {{name}}",
+    "bestDeal": "Best deal",
+    "unread": "Pages Gier could not read",
+    "unreadHint": "These shops may sell the product, but Gier could not read the price. Open the page to check, or add the link yourself.",
+    "unreadReason": {
+      "blocked": "blocked by the shop",
+      "robots_disallowed": "not allowed by the shop",
+      "no_price": "no price found",
+      "http": "error {{code}}",
+      "failed": "could not load",
+      "bad_json": "store search failed"
+    }
   },
   "stores": {
     "title": "Store registry",
@@ -259,7 +270,8 @@
       "browser_run_failed": "Starting the browser at Cloudflare failed. Try again in a moment.",
       "login_url_outside_store": "The login page must be on the store's own website."
     },
-    "loginPageEdit": "Change the page where the login starts"
+    "loginPageEdit": "Change the page where the login starts",
+    "loyaltyCard": "I have this store's loyalty card"
   },
   "notifications": {
     "title": "Notifications",
@@ -358,7 +370,10 @@
     "unread": "Unread",
     "actions": "Actions",
     "remove": "Remove {{name}}",
-    "menu": "Menu"
+    "menu": "Menu",
+    "crashTitle": "Something went wrong on this screen",
+    "crashHint": "The rest of Gier still works. Try again, or go back to the overview.",
+    "crashDetails": "Technical details"
   },
   "reason": {
     "no_key": "No Anthropic key configured",
@@ -382,5 +397,9 @@
     "manual": "Open the browser menu and choose \"Install app\" or \"Add to Home screen\".",
     "action": "Install",
     "dismiss": "Not now"
+  },
+  "promo": {
+    "each": "→ {{price}} each when you buy {{count}}",
+    "withCard": "With loyalty card: {{deal}} → {{price}} each"
   }
 }

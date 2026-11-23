@@ -193,7 +193,18 @@
     "continueInBackground": "Verder op de achtergrond",
     "referenceTitle": "Ter referentie",
     "referenceHint": "Afbeelding van {{source}}.",
-    "referenceAlt": "Afbeelding van {{name}}"
+    "referenceAlt": "Afbeelding van {{name}}",
+    "bestDeal": "Beste deal",
+    "unread": "Pagina's die Gier niet kon lezen",
+    "unreadHint": "Deze winkels verkopen het product misschien, maar Gier kon de prijs niet lezen. Open de pagina om te kijken, of voeg de link zelf toe.",
+    "unreadReason": {
+      "blocked": "geblokkeerd door de winkel",
+      "robots_disallowed": "niet toegestaan door de winkel",
+      "no_price": "geen prijs gevonden",
+      "http": "fout {{code}}",
+      "failed": "kon niet laden",
+      "bad_json": "zoeken in winkel mislukt"
+    }
   },
   "stores": {
     "title": "Winkelregister",
@@ -259,7 +270,8 @@
       "browser_run_failed": "De browser bij Cloudflare starten is mislukt. Probeer het zo opnieuw.",
       "login_url_outside_store": "De inlogpagina moet op de eigen website van de winkel staan."
     },
-    "loginPageEdit": "Wijzig de pagina waar het inloggen begint"
+    "loginPageEdit": "Wijzig de pagina waar het inloggen begint",
+    "loyaltyCard": "Ik heb de klantenkaart van deze winkel"
   },
   "notifications": {
     "title": "Meldingen",
@@ -358,7 +370,10 @@
     "unread": "Ongelezen",
     "actions": "Acties",
     "remove": "{{name}} verwijderen",
-    "menu": "Menu"
+    "menu": "Menu",
+    "crashTitle": "Er ging iets mis op dit scherm",
+    "crashHint": "De rest van Gier werkt nog. Probeer het opnieuw of ga terug naar het overzicht.",
+    "crashDetails": "Technische details"
   },
   "reason": {
     "no_key": "Geen Anthropic-sleutel ingesteld",
@@ -382,5 +397,9 @@
     "manual": "Open het browsermenu en kies \"App installeren\" of \"Toevoegen aan startscherm\".",
     "action": "Installeren",
     "dismiss": "Nu niet"
+  },
+  "promo": {
+    "each": "→ {{price}} per stuk bij {{count}} stuks",
+    "withCard": "Met klantenkaart: {{deal}} → {{price}} per stuk"
   }
 }

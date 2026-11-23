@@ -3,6 +3,7 @@ import { AlertTriangle, ExternalLink, Info, Truck } from 'lucide-react';
 import type { ListingView } from '@/lib/types';
 import { euro, relative } from '@/lib/format';
 import { findingText, isWarning } from '@/lib/findings';
+import { PromoLine } from './PromoLine';
 import { Switch } from './ui/switch';
 import { cn } from '@/lib/utils';
 
@@ -25,7 +26,7 @@ export function ListingRow({
   return (
     <li
       className={cn(
-        'grid gap-2 rounded-xl border bg-card p-3',
+        'grid min-w-0 gap-2 rounded-xl border bg-card p-3 [&>*]:min-w-0',
         lowest && 'border-foreground/40 ring-2 ring-prey',
       )}
     >
@@ -62,11 +63,12 @@ export function ListingRow({
           <p className="font-display text-xl leading-tight font-extrabold tabular">
             {euro(l.priceCents)}
           </p>
-          {(l.packCount > 1 || compareUnit === 'per100') && l.unitPriceCents != null && (
-            <p className="text-xs text-muted-foreground tabular">
-              {euro(l.unitPriceCents)} {t(`detail.unit.${compareUnit}`)}
-            </p>
-          )}
+          {(l.packCount > 1 || compareUnit === 'per100' || l.promotion) &&
+            l.unitPriceCents != null && (
+              <p className="text-xs text-muted-foreground tabular">
+                {euro(l.unitPriceCents)} {t(`detail.unit.${compareUnit}`)}
+              </p>
+            )}
           {l.referenceCents && (
             <p className="text-xs text-muted-foreground line-through tabular">
               {euro(l.referenceCents)}
@@ -74,6 +76,12 @@ export function ListingRow({
           )}
         </div>
       </div>
+      <PromoLine
+        promotion={l.promotion}
+        unitCents={l.unitPriceCents}
+        card={l.cardPromotion?.promotion}
+        cardUnitCents={l.cardPromotion?.unitCents}
+      />
       {(warnings.length > 0 || info.length > 0) && (
         <ul className="grid gap-1">
           {warnings.map((f) => (

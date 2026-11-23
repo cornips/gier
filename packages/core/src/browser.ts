@@ -5,6 +5,7 @@ export * from './text';
 export * from './deal/history';
 export * from './deal/checks';
 export * from './deal/verdict';
+export * from './deal/promotion';
 export * from './costs/ai';
 export type { ExtractedOffer, ReferenceType, Availability } from './extract/types';
 export type { Fingerprint, MatchVerdict } from './match/fingerprint';

@@ -24,13 +24,33 @@ export interface StoredCookie {
   secure?: boolean;
 }
 
+/**
+ * Quick actions are rate limited (on the Workers Free plan one per 10 seconds), so renders wait in one
+ * queue with a minimum interval instead of failing with 429.
+ */
+let renderQueue: Promise<unknown> = Promise.resolve();
+let lastRender = 0;
+const RENDER_INTERVAL_MS = 10_000;
+
 /** Rendered HTML via the /content quick action. Cookies come from a stored login session, if any. */
-export async function renderHtml(
+export function renderHtml(
   ctx: Ctx,
   url: string,
   cookies: StoredCookie[] = [],
 ): Promise<string | null> {
-  if (!browserRunAvailable(ctx)) return null;
+  if (!browserRunAvailable(ctx)) return Promise.resolve(null);
+  const run = async () => {
+    const wait = lastRender + RENDER_INTERVAL_MS - Date.now();
+    if (wait > 0 && ctx.env.NODE_ENV !== 'test') await new Promise((r) => setTimeout(r, wait));
+    lastRender = Date.now();
+    return renderNow(ctx, url, cookies);
+  };
+  const next = renderQueue.then(run, run);
+  renderQueue = next.catch(() => null);
+  return next;
+}
+
+async function renderNow(ctx: Ctx, url: string, cookies: StoredCookie[]): Promise<string | null> {
   const res = await ctx.http(`${base(ctx)}/content`, {
     method: 'POST',
     headers: {

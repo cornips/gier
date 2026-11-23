@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Bell, Coins, Menu, Settings, Store } from 'lucide-react';
+import { ErrorBoundary } from './ErrorBoundary';
 import { InstallBanner } from './InstallBanner';
 import { Wordmark } from './Logo';
 import { SearchCommand, SearchTrigger } from './SearchCommand';
@@ -146,7 +147,9 @@ export function AppShell() {
       </div>
 
       <main id="main" className="mx-auto max-w-6xl px-4 pt-6">
-        <Outlet context={{ openSearch: () => setSearchOpen(true) }} />
+        <ErrorBoundary>
+          <Outlet context={{ openSearch: () => setSearchOpen(true) }} />
+        </ErrorBoundary>
       </main>
 
       {/* Mobile: search lives at the bottom, within thumb reach. */}

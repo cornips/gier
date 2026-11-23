@@ -6,7 +6,13 @@ import {
   similarity,
   tokens,
 } from '../text';
-import { parseQuantity, sameSize, type CompareUnit, type Quantity } from '../units';
+import {
+  combineQuantity,
+  parseQuantity,
+  sameSize,
+  type CompareUnit,
+  type Quantity,
+} from '../units';
 
 /** ADR-007: what the user means, with each attribute either locked (must match) or loose. */
 export interface Fingerprint {
@@ -28,6 +34,9 @@ export interface Fingerprint {
 
 export interface Candidate {
   title: string;
+  /** Other descriptions of the same offer (heading, URL words) and a separate size field. */
+  altTitles?: string[];
+  size?: string | null;
   brand?: string | null;
   gtin?: string | null;
   mpn?: string | null;
@@ -57,8 +66,8 @@ export const ALWAYS_EXCLUDE = [
 
 export function matchCandidate(fp: Fingerprint, c: Candidate): MatchResult {
   const reasons: string[] = [];
-  const quantity = parseQuantity(c.title);
-  const title = normalize(`${c.brand ?? ''} ${c.title}`);
+  const quantity = combineQuantity([c.title, c.size, ...(c.altTitles ?? [])]);
+  const title = normalize(`${c.brand ?? ''} ${c.title} ${c.size ?? ''}`);
 
   // Hard exclusions first: they are cheap and explainable.
   for (const term of [...ALWAYS_EXCLUDE, ...fp.exclude]) {

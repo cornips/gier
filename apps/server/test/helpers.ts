@@ -2,6 +2,7 @@ import { openDb } from '@gier/db';
 import type { Ctx } from '../src/context';
 import { loadEnv } from '../src/env';
 import { Fetcher } from '../src/lib/fetcher';
+import { clearRdapCache } from '../src/services/rdap';
 import { seedStores } from '../src/services/stores';
 
 /** A fake web: map of URL → HTML (or a function for changing prices). */
@@ -34,7 +35,8 @@ export const productPage = (o: {
 export function makeCtx(
   web: FakeWeb,
   opts: {
-    searx?: { url: string; title: string }[];
+    /** Search results for every query, or per query. */
+    searx?: { url: string; title: string }[] | ((q: string) => { url: string; title: string }[]);
     now?: () => Date;
     env?: Record<string, string>;
   } = {},
@@ -48,6 +50,7 @@ export function makeCtx(
     GIER_BASE_PATH: '/gier',
     ...opts.env,
   });
+  clearRdapCache();
   const { db } = openDb(':memory:');
   const pageFetch = (async (input: string | URL | Request) => {
     const url = String(input instanceof Request ? input.url : input);
@@ -63,8 +66,10 @@ export function makeCtx(
   const http = (async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input instanceof Request ? input.url : input);
     if (url.startsWith('http://searx.test/search')) {
+      const q = new URL(url).searchParams.get('q') ?? '';
+      const hits = typeof opts.searx === 'function' ? opts.searx(q) : (opts.searx ?? []);
       return Response.json({
-        results: (opts.searx ?? []).map((r) => ({ url: r.url, title: r.title, content: '' })),
+        results: hits.map((r) => ({ url: r.url, title: r.title, content: '' })),
       });
     }
     if (url.startsWith('https://rdap.org/domain/')) {

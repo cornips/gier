@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, isNull, sql } from 'drizzle-orm';
 import {
+  bestPromotion,
   DAY,
   isFakeDiscount,
   lowestSeries,
@@ -11,6 +12,7 @@ import {
   unitPrice,
   type Finding,
   type PricePoint,
+  type Promotion,
 } from '@gier/core';
 import {
   adviceEntries,
@@ -36,14 +38,19 @@ export const toPricePoint = (r: PricePointRow): PricePoint => ({
   referenceType: r.referenceType,
   claimedDiscountPct: r.claimedDiscountPct,
   dealLabel: r.dealLabel,
+  promotions: r.promotions ?? null,
 });
 
 export interface ListingSeries {
+  product: Product;
   listing: Listing;
   store: Store;
   /** Raw observations as shown by the shop. */
   points: PricePoint[];
-  /** Pay price per compare unit (multipacks divided, shipping included). */
+  /**
+   * Pay price per compare unit: multipacks divided, shipping included, and the best multi-buy
+   * promotion applied (card-only promotions only when the user has that store's card).
+   */
   unitPoints: PricePoint[];
 }
 
@@ -51,6 +58,7 @@ export function toUnitPoints(
   product: Product,
   listing: Listing,
   points: PricePoint[],
+  hasCard = false,
 ): PricePoint[] {
   const q = product.fingerprint.quantity;
   const quantity = {
@@ -58,14 +66,19 @@ export function toUnitPoints(
     amount: q?.amount ?? 1,
     unit: q?.unit ?? ('piece' as const),
   };
-  return points.map((p) => ({
-    ...p,
-    priceCents: unitPrice(payPrice(p), quantity, product.compareUnit),
-    shippingCents: 0,
-    referenceCents: p.referenceCents
-      ? unitPrice(p.referenceCents, quantity, product.compareUnit)
-      : p.referenceCents,
-  }));
+  return points.map((p) => {
+    const regular = unitPrice(payPrice(p), quantity, product.compareUnit);
+    const promo = bestPromotion(p.promotions, regular, hasCard);
+    return {
+      ...p,
+      priceCents: promo?.unitCents ?? regular,
+      appliedPromotion: promo?.promotion ?? null,
+      shippingCents: 0,
+      referenceCents: p.referenceCents
+        ? unitPrice(p.referenceCents, quantity, product.compareUnit)
+        : p.referenceCents,
+    };
+  });
 }
 
 export const asVerdictSeries = (s: ListingSeries) => ({
@@ -89,7 +102,13 @@ export function loadSeries(ctx: Ctx, product: Product): ListingSeries[] {
       .orderBy(asc(pricePoints.observedAt))
       .all()
       .map(toPricePoint);
-    return { listing, store, points, unitPoints: toUnitPoints(product, listing, points) };
+    return {
+      product,
+      listing,
+      store,
+      points,
+      unitPoints: toUnitPoints(product, listing, points, Boolean(store.rules?.loyaltyCard)),
+    };
   });
 }
 
@@ -121,9 +140,30 @@ export interface ListingView {
   referenceType: string | null;
   claimedDiscountPct: number | null;
   dealLabel: string | null;
+  /** Promotion behind unitPriceCents, and a card-only one the user could use with the store's card. */
+  promotion: Promotion | null;
+  cardPromotion: { promotion: Promotion; unitCents: number } | null;
+  /** Price per item without promotion. */
+  regularUnitCents: number | null;
   lastCheckedAt: string | null;
   lastError: string | null;
   findings: Finding[];
+}
+
+const productOf = (s: ListingSeries) => s.product;
+const regularUnit = (s: ListingSeries, p: PricePoint | null | undefined) =>
+  p
+    ? (toUnitPoints(productOf(s), s.listing, [{ ...p, promotions: null }])[0]?.priceCents ?? null)
+    : null;
+
+/** A card-only promotion that would beat the current price if the user had the store's card. */
+function cardOnly(s: ListingSeries, p: PricePoint | null | undefined) {
+  if (!p?.promotions?.some((x) => x.requires === 'card') || s.store.rules?.loyaltyCard) return null;
+  const withCard = toUnitPoints(productOf(s), s.listing, [p], true)[0];
+  const now = pointAt(s.unitPoints, p.at);
+  if (!withCard?.appliedPromotion || withCard.appliedPromotion.requires !== 'card') return null;
+  if (now && withCard.priceCents >= now.priceCents) return null;
+  return { promotion: withCard.appliedPromotion, unitCents: withCard.priceCents };
 }
 
 export function listingViews(series: ListingSeries[], now: Date): ListingView[] {
@@ -156,6 +196,9 @@ export function listingViews(series: ListingSeries[], now: Date): ListingView[] 
         referenceType: current?.referenceType ?? null,
         claimedDiscountPct: current?.claimedDiscountPct ?? null,
         dealLabel: current?.dealLabel ?? null,
+        promotion: unit?.appliedPromotion ?? null,
+        cardPromotion: cardOnly(s, current),
+        regularUnitCents: regularUnit(s, current),
         lastCheckedAt: s.listing.lastCheckedAt?.toISOString() ?? null,
         lastError: s.listing.lastError,
         findings,

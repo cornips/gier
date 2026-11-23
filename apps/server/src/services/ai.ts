@@ -245,7 +245,9 @@ export async function proposeFingerprint(
   return {
     name: r.name,
     category: r.category,
-    variants: r.variants ?? [],
+    variants: (r.variants ?? [])
+      .filter((v) => v && typeof v.label === 'string' && typeof v.quantity === 'string')
+      .slice(0, 5),
     costEur,
     fingerprint: {
       title: r.name,

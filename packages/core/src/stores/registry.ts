@@ -41,6 +41,69 @@ export interface StoreRules {
   loginUrl?: string;
   /** Mostly physical store; online assortment is limited. */
   limitedOnline?: boolean;
+  /** The user has this store's loyalty card, so card-only promotions count (set by the user). */
+  loyaltyCard?: boolean;
+  /** The store's own product search, used next to web search so known stores are never missed. */
+  search?: StoreSearch;
+}
+
+export interface StoreSearch {
+  /** URL with {q} for the URL-encoded query. */
+  url: string;
+  /** 'html': product links in the page; 'json': a JSON API with a list of products. */
+  type: 'html' | 'json';
+  /** html: regular expression for product paths, e.g. "/producten/[^\"?#]+\\.html". */
+  productPath?: string;
+  /** json: dotted path to the product list, and the fields for link and name. */
+  items?: string;
+  link?: string;
+  name?: string;
+  /** Prefix for relative links. */
+  base?: string;
+}
+
+/**
+ * Store categories worth searching for a product category (the AI's short English label). Marketplaces
+ * always count. Returns null when the category is unknown: then every known store is in scope.
+ */
+export function storeCategoriesFor(
+  productCategory: string | null | undefined,
+): StoreCategory[] | null {
+  const c = (productCategory ?? '').toLowerCase();
+  if (!c) return null;
+  const groups: [RegExp, StoreCategory[]][] = [
+    [
+      /perfum|fragrance|parfum|eau de|cologne|geur/,
+      ['perfumery', 'drugstore', 'department', 'health', 'brand'],
+    ],
+    [
+      /personal care|hair|haar|skin|huid|beauty|cosmetic|make-?up|deodor|shav|scheer|oral|tand|hygien|body|lichaam|verzorging|baby/,
+      ['drugstore', 'perfumery', 'health', 'department', 'discounter', 'supermarket', 'brand'],
+    ],
+    [/health|vitamin|supplement|gezondheid|medic|pharma/, ['drugstore', 'health', 'supermarket']],
+    [
+      /food|grocer|drink|beverage|snack|coffee|tea|voeding|eten|drank/,
+      ['supermarket', 'wholesale', 'discounter'],
+    ],
+    [/wine|beer|spirit|liquor|alcohol|whisk|wijn|bier/, ['liquor', 'supermarket', 'wholesale']],
+    [
+      /computer|laptop|pc|monitor|keyboard|mouse|storage|ssd|gpu|network|printer/,
+      ['computers', 'electronics'],
+    ],
+    [
+      /audio|headphone|speaker|\btv\b|televis|phone|camera|electronic|gaming|console|smart|wearable|appliance/,
+      ['electronics', 'computers', 'department'],
+    ],
+    [
+      /kitchen|home|household|garden|furniture|decor|keuken|huis|tuin|clean|schoon/,
+      ['home', 'department', 'discounter', 'supermarket', 'drugstore'],
+    ],
+    [/fashion|cloth|apparel|kleding/, ['fashion', 'department']],
+    [/shoe|schoen/, ['shoes', 'fashion']],
+    [/travel|reis|camping|car|auto/, ['travel', 'department']],
+  ];
+  const hit = groups.find(([re]) => re.test(c));
+  return hit ? ['marketplace', ...hit[1]] : null;
 }
 
 export interface StoreSeed {
@@ -72,12 +135,50 @@ export const FIXED_STORES: StoreSeed[] = [
   { name: 'Alternate', domain: 'alternate.nl', category: 'computers' },
   { name: 'Robbshop', domain: null, category: 'unknown' },
   { name: 'OFM', domain: null, category: 'unknown' },
-  { name: 'Kruidvat', domain: 'kruidvat.nl', category: 'drugstore' },
-  { name: 'Etos', domain: 'etos.nl', category: 'drugstore' },
+  {
+    name: 'Kruidvat',
+    domain: 'kruidvat.nl',
+    category: 'drugstore',
+    rules: {
+      search: {
+        type: 'json',
+        url: 'https://api.kruidvat.nl/api/v2/kvn-spa/search?fields=FULL&searchType=PRODUCT&query={q}&lang=nl&curr=EUR',
+        items: 'products',
+        link: 'url',
+        name: 'name',
+        base: 'https://www.kruidvat.nl',
+      },
+    },
+  },
+  {
+    name: 'Etos',
+    domain: 'etos.nl',
+    category: 'drugstore',
+    rules: {
+      search: {
+        type: 'html',
+        url: 'https://www.etos.nl/search/?q={q}',
+        productPath: '/producten/[^"?#]+\\.html',
+        base: 'https://www.etos.nl',
+      },
+    },
+  },
   { name: 'Plein.nl', domain: 'plein.nl', category: 'drugstore' },
   { name: 'Holland & Barrett', domain: 'hollandandbarrett.nl', category: 'health' },
   { name: 'ICI Paris XL', domain: 'iciparisxl.nl', category: 'perfumery' },
-  { name: 'Douglas', domain: 'douglas.nl', category: 'perfumery' },
+  {
+    name: 'Douglas',
+    domain: 'douglas.nl',
+    category: 'perfumery',
+    rules: {
+      search: {
+        type: 'html',
+        url: 'https://www.douglas.nl/nl/search?q={q}',
+        productPath: '/nl/p/\\d+(?:\\?variant=\\d+)?',
+        base: 'https://www.douglas.nl',
+      },
+    },
+  },
   { name: 'Rituals', domain: 'rituals.com', category: 'brand', rules: { brands: ['Rituals'] } },
   { name: 'Albert Heijn', domain: 'ah.nl', category: 'supermarket' },
   { name: 'Jumbo', domain: 'jumbo.com', category: 'supermarket' },

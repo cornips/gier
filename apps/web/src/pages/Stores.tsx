@@ -18,6 +18,7 @@ import {
 import { api, ApiError } from '@/lib/api';
 import type { StoreRow, Trust } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -200,6 +201,7 @@ export default function StoresPage() {
               </span>
               {loginState(s)}
             </div>
+            <LoyaltyCard store={s} />
             {s.requiresLogin && <div>{loginButton(s)}</div>}
           </li>
         ))}
@@ -235,6 +237,7 @@ export default function StoresPage() {
                   <p className="text-xs text-muted-foreground">
                     {s.domain} · {t(`stores.origin.${s.origin}`)}
                   </p>
+                  <LoyaltyCard store={s} />
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap items-center gap-2">
@@ -270,6 +273,36 @@ export default function StoresPage() {
       {login && <LoginDialog store={login} onClose={() => setLogin(null)} />}
       <AddStoreDialog open={adding} onClose={() => setAdding(false)} />
     </div>
+  );
+}
+
+/** Store kinds that usually run a loyalty card with card-only deals. */
+const CARD_STORES = ['drugstore', 'perfumery', 'supermarket', 'department', 'health', 'discounter'];
+
+/** "I have this card": card-only multi-buy deals then count in prices and alerts. */
+function LoyaltyCard({ store }: { store: StoreRow }) {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const checked = Boolean(store.rules?.loyaltyCard);
+  const save = useMutation({
+    mutationFn: (loyaltyCard: boolean) => api.updateStore(store.id, { loyaltyCard }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['stores'] });
+      void qc.invalidateQueries({ queryKey: ['product'] });
+      void qc.invalidateQueries({ queryKey: ['products'] });
+    },
+    onError: (e) => toast.error(String(e)),
+  });
+  if (!checked && !CARD_STORES.includes(store.category)) return null;
+  return (
+    <label className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+      <Checkbox
+        checked={checked}
+        onCheckedChange={(v) => save.mutate(v === true)}
+        disabled={save.isPending}
+      />
+      {t('stores.loyaltyCard')}
+    </label>
   );
 }
 

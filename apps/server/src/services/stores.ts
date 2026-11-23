@@ -4,8 +4,7 @@ import { stores, type Store } from '@gier/db';
 import type { Ctx } from '../context';
 
 /**
- * Seeds the known stores (ADR-013). Idempotent: existing rows keep the user's changes. A login URL that
- * the registry gained later is filled in only where the store has none yet.
+ * Seeds the known stores (ADR-013). Idempotent: existing rows keep the user's changes.
  */
 export function seedStores(ctx: Ctx): number {
   let added = 0;
@@ -14,10 +13,19 @@ export function seedStores(ctx: Ctx): number {
       ? ctx.db.select().from(stores).where(eq(stores.domain, s.domain)).get()
       : ctx.db.select().from(stores).where(eq(stores.name, s.name)).get();
     if (existing) {
-      if (s.rules?.loginUrl && !existing.rules?.loginUrl)
+      // Technical settings from the registry (login page, store search) follow new versions of Gier;
+      // the user's own choices (trust, preference, card) are never touched.
+      const patch: Record<string, unknown> = {};
+      if (s.rules?.loginUrl && !existing.rules?.loginUrl) patch.loginUrl = s.rules.loginUrl;
+      if (
+        s.rules?.search &&
+        JSON.stringify(s.rules.search) !== JSON.stringify(existing.rules?.search)
+      )
+        patch.search = s.rules.search;
+      if (Object.keys(patch).length)
         ctx.db
           .update(stores)
-          .set({ rules: { ...(existing.rules ?? {}), loginUrl: s.rules.loginUrl } })
+          .set({ rules: { ...(existing.rules ?? {}), ...patch } })
           .where(eq(stores.id, existing.id))
           .run();
       continue;

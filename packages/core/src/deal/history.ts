@@ -1,3 +1,4 @@
+import type { Promotion } from './promotion';
 import type { Cents } from '../money';
 import type { ReferenceType } from '../extract/types';
 
@@ -12,6 +13,10 @@ export interface PricePoint {
   referenceType?: ReferenceType;
   claimedDiscountPct?: number | null;
   dealLabel?: string | null;
+  /** Multi-buy promotions shown with this price. */
+  promotions?: Promotion[] | null;
+  /** On unit points: the promotion that set this price per item, if any. */
+  appliedPromotion?: Promotion | null;
 }
 
 /** Price points are stored on change only; the price holds until the next point (step function). */

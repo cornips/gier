@@ -511,11 +511,13 @@ export function createApp(ctx: Ctx) {
         query: z.string().min(1),
         fingerprint: fingerprintSchema,
         productId: z.number().int().positive().nullish(),
+        category: z.string().max(80).nullish(),
       })
       .parse(await c.req.json());
     const runId = startDiscovery(ctx, {
       productId: body.productId ?? null,
       query: body.query,
+      category: body.category ?? null,
       fingerprint: body.fingerprint as Fingerprint,
       follow: Boolean(body.productId),
       useAi: true,
@@ -583,15 +585,17 @@ export function createApp(ctx: Ctx) {
         preferenceThresholdPct: z.number().min(0).max(50).optional(),
         /** ADR-014: page where the login handoff starts; must be on the store's own domain. */
         loginUrl: z.string().url().nullish(),
+        /** The user has this store's loyalty card: card-only promotions count. */
+        loyaltyCard: z.boolean().optional(),
       })
       .parse(await c.req.json());
-    const { preferenceThresholdPct, loginUrl, ...fields } = body;
+    const { preferenceThresholdPct, loginUrl, loyaltyCard, ...fields } = body;
     const store = ctx.db.select().from(stores).where(eq(stores.id, id)).get();
     if (!store) return c.json({ error: 'not_found' }, 404);
     if (loginUrl && domainOf(loginUrl) !== store.domain)
       return c.json({ error: 'login_url_outside_store' }, 400);
     const rules =
-      preferenceThresholdPct === undefined && loginUrl === undefined
+      preferenceThresholdPct === undefined && loginUrl === undefined && loyaltyCard === undefined
         ? undefined
         : {
             ...(store.rules ?? {}),
@@ -599,6 +603,7 @@ export function createApp(ctx: Ctx) {
               ? {}
               : { preferenceThresholdPct: preferenceThresholdPct || undefined }),
             ...(loginUrl === undefined ? {} : { loginUrl: loginUrl ?? undefined }),
+            ...(loyaltyCard === undefined ? {} : { loyaltyCard: loyaltyCard || undefined }),
           };
     ctx.db
       .update(stores)

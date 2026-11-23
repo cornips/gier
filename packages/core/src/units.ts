@@ -14,9 +14,19 @@ export type CompareUnit = 'piece' | 'per100';
 
 const SIZE_RE = /(\d+(?:[.,]\d+)?)\s*(ml|cl|dl|l|liter|litre|g|gr|gram|kg)\b/i;
 const PACK_RES = [
+  // "6 x 150 ml", "6x150ml"
   /(\d+)\s*[x×]\s*\d+(?:[.,]\d+)?\s*(?:ml|cl|dl|l|g|gr|kg)\b/i,
-  /(\d+)\s*-?\s*(?:pack|pak|stuks|st\.?|pcs|pieces)\b/i,
-  /\b(?:pack|set|doos|voordeelpak)\s+(?:van\s+)?(\d+)\b/i,
+  // "150 ml x 6"
+  /\d+(?:[.,]\d+)?\s*(?:ml|cl|dl|l|g|gr|kg)\s*[x×]\s*(\d+)\b/i,
+  // "2 x Syoss Max Hold …" at the start, or after a separator: "Bulkverpakking - 3 x Syoss"
+  /(?:^\s*|[(|–—-]\s*)(\d{1,2})\s*[x×]\s+(?=[a-z])/i,
+  // "3-pack", "2 stuks", "(4 st.)"
+  /(\d+)\s*-?\s*(?:pack|pak|stuks|stuk|st\.?|pcs|pieces)\b/i,
+  /\b(?:pack|set|doos|voordeelpak|voordeelverpakking|multipack)\s+(?:van\s+)?(\d+)\b/i,
+];
+const PACK_WORDS: [RegExp, number][] = [
+  [/\b(?:duo|duopak|duopack|duoverpakking|tweepak)\b/i, 2],
+  [/\b(?:trio|driepak|triopak)\b/i, 3],
 ];
 
 const TO_BASE: Record<string, { unit: QuantityUnit; factor: number }> = {
@@ -45,6 +55,12 @@ export function parseQuantity(title: string): Quantity {
       }
     }
   }
+  if (packCount === 1)
+    for (const [re, n] of PACK_WORDS)
+      if (re.test(title)) {
+        packCount = n;
+        break;
+      }
   const size = SIZE_RE.exec(title);
   if (size) {
     const base = TO_BASE[size[2]!.toLowerCase()];
@@ -54,6 +70,20 @@ export function parseQuantity(title: string): Quantity {
     }
   }
   return { packCount, amount: 1, unit: 'piece' };
+}
+
+/**
+ * Reads the quantity from several descriptions of the same offer (title, page heading, URL, size field)
+ * and combines them: the size from wherever it is given, the largest credible pack count. Shops often put
+ * the pack count only in the URL or heading ("2-x-…-2-stuks") and the size only in a separate field.
+ */
+export function combineQuantity(sources: (string | null | undefined)[]): Quantity {
+  const parsed = sources.filter((s): s is string => Boolean(s?.trim())).map(parseQuantity);
+  const sized = parsed.find((q) => q.unit !== 'piece');
+  const packCount = Math.max(1, ...parsed.map((q) => q.packCount));
+  return sized
+    ? { packCount, amount: sized.amount, unit: sized.unit }
+    : { packCount, amount: 1, unit: 'piece' };
 }
 
 /** Price for one item, or per 100 ml/g, in cents. */

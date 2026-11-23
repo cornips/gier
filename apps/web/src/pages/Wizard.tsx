@@ -19,6 +19,8 @@ import {
   TIER_CAP_EUR,
   estimateMonthlyUsd,
   describeQuantity,
+  parseQuantity,
+  type Quantity,
 } from '@gier/core/browser';
 import { api, imageSrc, type CreateProductInput } from '@/lib/api';
 import { euro, euroPrecise, parseEuroInput } from '@/lib/format';
@@ -29,6 +31,7 @@ import type {
   Fingerprint,
   FingerprintProposal,
 } from '@/lib/types';
+import { PromoLine } from '@/components/PromoLine';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -44,6 +47,12 @@ type Attr = Fingerprint['locked'][number];
 const ATTRS: Attr[] = ['brand', 'line', 'form', 'quantity', 'model'];
 const TIERS: BudgetTier[] = ['none', 'frugal', 'normal', 'generous'];
 const DEFAULT_ALERTS: AlertKind[] = ['below', 'all_time_low', 'fake_discount', 'new_store'];
+/** Removes a size such as "100 ml" from a product name, so a chosen size can replace it. */
+const stripSize = (name: string) =>
+  name
+    .replace(/\s*\d+(?:[.,]\d+)?\s*(?:ml|cl|l|g|gr|kg)\b/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 const USD_TO_EUR_ROUGH = 0.95; // display estimate only; real costs use the daily ECB rate on the server
 
 function Steps({ step }: { step: Step }) {
@@ -162,7 +171,7 @@ function ProductStep({
       setDraft({
         name: proposal.data.name,
         fp: structuredClone(proposal.data.fingerprint),
-        variant: proposal.data.variants[0] ?? null,
+        variant: null,
       });
   }, [proposal.data]);
 
@@ -215,10 +224,46 @@ function ProductStep({
     setNewTerm('');
   };
 
+  // Sizes: the recognised one first, then the other sizes the AI knows for this product line.
+  const sizeOptions = (() => {
+    const seen = new Set<string>();
+    const out: { key: string; label: string; quantity: Quantity | null }[] = [];
+    const add = (label: string, quantity: Quantity | null) => {
+      const key = quantity ? describeQuantity(quantity) : label.trim().toLowerCase();
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      out.push({ key, label, quantity });
+    };
+    if (p.fingerprint.quantity)
+      add(describeQuantity(p.fingerprint.quantity), p.fingerprint.quantity);
+    for (const v of p.variants ?? []) {
+      if (!v || typeof v.label !== 'string') continue;
+      const q = parseQuantity(v.quantity || v.label);
+      add(v.label, q.unit === 'piece' && q.packCount === 1 ? null : q);
+    }
+    return out;
+  })();
+  const chooseSize = (key: string) => {
+    const o = sizeOptions.find((x) => x.key === key);
+    if (!o) return;
+    setDraft({
+      ...draft,
+      variant: key,
+      fp: o.quantity
+        ? {
+            ...fp,
+            quantity: o.quantity,
+            locked: fp.locked.includes('quantity') ? fp.locked : [...fp.locked, 'quantity'],
+          }
+        : fp,
+    });
+  };
+
   const submit = () => {
+    const chosen = sizeOptions.find((o) => o.key === draft.variant);
     const name =
-      draft.variant && !draft.name.includes(draft.variant)
-        ? `${draft.name} ${draft.variant}`
+      chosen && chosen !== sizeOptions[0] && !draft.name.includes(chosen.label)
+        ? `${stripSize(draft.name)} ${chosen.label}`
         : draft.name;
     create.mutate({
       name,
@@ -289,20 +334,20 @@ function ProductStep({
           </fieldset>
         )}
 
-        {p.variants.length > 1 && (
+        {sizeOptions.length > 1 && (
           <fieldset className="grid gap-2">
             <legend className="mb-1 text-sm font-medium">{t('wizard.variant')}</legend>
             <RadioGroup
-              value={draft.variant ?? ''}
-              onValueChange={(v) => setDraft({ ...draft, variant: v })}
+              value={draft.variant ?? sizeOptions[0]!.key}
+              onValueChange={chooseSize}
               className="flex flex-wrap gap-2"
             >
-              {p.variants.map((v) => (
+              {sizeOptions.map((o) => (
                 <Label
-                  key={v}
+                  key={o.key}
                   className="flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 has-[[data-state=checked]]:border-foreground"
                 >
-                  <RadioGroupItem value={v} /> {v}
+                  <RadioGroupItem value={o.key} /> {o.label}
                 </Label>
               ))}
             </RadioGroup>
@@ -477,7 +522,9 @@ function StoresStep({
   const groups = useMemo(() => {
     const cs = run.data?.candidates ?? [];
     return {
-      trusted: cs.filter((c) => c.followed),
+      trusted: cs
+        .filter((c) => c.followed)
+        .sort((a, b) => (a.unitPriceCents ?? Infinity) - (b.unitPriceCents ?? Infinity)),
       doubt: cs.filter((c) => !c.followed && c.match !== 'reject' && c.trust !== 'excluded'),
       excluded: cs.filter((c) => !c.followed && (c.match === 'reject' || c.trust === 'excluded')),
     };
@@ -534,7 +581,12 @@ function StoresStep({
         </p>
       )}
 
-      <CandidateGroup title={t('wizard.trusted')} items={groups.trusted} tone="trusted" />
+      <CandidateGroup
+        title={t('wizard.trusted')}
+        items={groups.trusted}
+        tone="trusted"
+        bestUrl={groups.trusted.length > 1 ? groups.trusted[0]!.url : undefined}
+      />
       <CandidateGroup
         title={t('wizard.doubt')}
         items={groups.doubt}
@@ -562,6 +614,37 @@ function StoresStep({
         tone="excluded"
         collapsed
       />
+      {r.status === 'done' && (r.stats?.unread?.length ?? 0) > 0 && (
+        <details className="text-sm">
+          <summary className="cursor-pointer font-medium text-muted-foreground">
+            {t('wizard.unread')} ({r.stats!.unread!.length})
+          </summary>
+          <p className="mt-2 text-xs text-muted-foreground">{t('wizard.unreadHint')}</p>
+          <ul className="mt-2 grid gap-1 text-xs">
+            {r.stats!.unread!.map((u) => (
+              <li
+                key={u.url}
+                className="flex justify-between gap-3 rounded-lg border px-2.5 py-1.5"
+              >
+                <a
+                  href={u.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="min-w-0 truncate underline-offset-4 hover:underline"
+                >
+                  {u.domain ?? u.url}
+                </a>
+                <span className="shrink-0 text-muted-foreground">
+                  {t(`wizard.unreadReason.${u.reason.startsWith('http_') ? 'http' : u.reason}`, {
+                    defaultValue: u.reason,
+                    code: u.reason.replace('http_', ''),
+                  })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
 
       <div className="flex justify-end">
         <Button size="lg" onClick={onNext} disabled={r.status === 'running'}>
@@ -579,12 +662,15 @@ function CandidateGroup({
   tone,
   action,
   collapsed,
+  bestUrl,
 }: {
   title: string;
   items: DiscoveryCandidate[];
   tone: 'trusted' | 'doubt' | 'excluded';
   action?: (c: DiscoveryCandidate) => React.ReactNode;
   collapsed?: boolean;
+  /** The cheapest offer per item, marked as the best deal. */
+  bestUrl?: string;
 }) {
   const { t } = useTranslation();
   if (!items.length) return null;
@@ -594,44 +680,60 @@ function CandidateGroup({
         <li
           key={c.url}
           className={cn(
-            'flex items-center gap-3 rounded-xl border bg-card p-3',
+            'grid min-w-0 gap-2 rounded-xl border bg-card p-3 [&>*]:min-w-0',
             tone === 'excluded' && 'opacity-70',
+            c.url === bestUrl && 'border-foreground/40 ring-2 ring-prey',
           )}
         >
-          <span className="relative shrink-0">
-            <Thumb url={c.imageUrl} className="size-12" />
-            <span
-              className={cn(
-                'absolute -right-0.5 -bottom-0.5 size-3 rounded-full ring-2 ring-card',
-                tone === 'trusted'
-                  ? 'bg-prey'
-                  : tone === 'doubt'
-                    ? 'bg-amber-400'
-                    : 'bg-destructive',
+          <div className="flex items-center gap-3">
+            <span className="relative shrink-0">
+              <Thumb url={c.imageUrl} className="size-12" />
+              <span
+                className={cn(
+                  'absolute -right-0.5 -bottom-0.5 size-3 rounded-full ring-2 ring-card',
+                  tone === 'trusted'
+                    ? 'bg-prey'
+                    : tone === 'doubt'
+                      ? 'bg-amber-400'
+                      : 'bg-destructive',
+                )}
+                aria-hidden
+              />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="flex flex-wrap items-center gap-x-2 font-semibold">
+                {c.storeName}
+                {c.url === bestUrl && (
+                  <span className="rounded bg-prey px-1.5 text-xs text-prey-foreground">
+                    {t('wizard.bestDeal')}
+                  </span>
+                )}
+              </p>
+              <p className="truncate text-xs text-muted-foreground" title={c.title ?? c.url}>
+                {c.title ?? c.url}
+              </p>
+              {tone !== 'trusted' && (
+                <p className="text-xs text-muted-foreground">
+                  {[...c.matchReasons, ...c.trustReasons].slice(0, 2).join(' · ')}
+                </p>
               )}
-              aria-hidden
-            />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold">{c.storeName}</p>
-            <p className="truncate text-xs text-muted-foreground" title={c.title ?? c.url}>
-              {c.title ?? c.url}
-            </p>
-            {tone !== 'trusted' && (
-              <p className="text-xs text-muted-foreground">
-                {[...c.matchReasons, ...c.trustReasons].slice(0, 2).join(' · ')}
-              </p>
-            )}
+            </div>
+            <div className="text-right">
+              <p className="font-display text-lg font-extrabold tabular">{euro(c.priceCents)}</p>
+              {(c.packCount > 1 || c.promotion) && (
+                <p className="text-xs text-muted-foreground tabular">
+                  {euro(c.unitPriceCents)} {t('wizard.each')}
+                </p>
+              )}
+            </div>
+            {action?.(c)}
           </div>
-          <div className="text-right">
-            <p className="font-display text-lg font-extrabold tabular">{euro(c.priceCents)}</p>
-            {c.packCount > 1 && (
-              <p className="text-xs text-muted-foreground tabular">
-                {euro(c.unitPriceCents)} {t('wizard.each')}
-              </p>
-            )}
-          </div>
-          {action?.(c)}
+          <PromoLine
+            promotion={c.promotion}
+            unitCents={c.promoUnitCents}
+            card={c.cardPromotion}
+            cardUnitCents={c.cardUnitCents}
+          />
         </li>
       ))}
     </ul>

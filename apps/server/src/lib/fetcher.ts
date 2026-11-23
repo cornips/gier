@@ -41,7 +41,7 @@ export class Fetcher {
 
   async get(
     url: string,
-    init: { cookie?: string; skipRobots?: boolean } = {},
+    init: { cookie?: string; skipRobots?: boolean; accept?: string } = {},
   ): Promise<FetchResult> {
     const domain = domainOf(url) ?? url;
     const run = async () => {
@@ -60,7 +60,7 @@ export class Fetcher {
           redirect: 'follow',
           headers: {
             'user-agent': this.opts.userAgent,
-            accept: 'text/html,application/xhtml+xml',
+            accept: init.accept ?? 'text/html,application/xhtml+xml',
             'accept-language': 'nl-NL,nl;q=0.9,en;q=0.6',
             ...(init.cookie ? { cookie: init.cookie } : {}),
           },

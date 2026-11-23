@@ -9,7 +9,7 @@ import { ensureLocalSecrets } from './lib/secrets';
 import { generateAdvice } from './services/advice';
 import { runDueChecks } from './services/checker';
 import { sendDigestIfDue } from './services/digest';
-import { startDiscovery } from './services/discovery';
+import { discoveryDue, failInterruptedRuns, startDiscovery } from './services/discovery';
 import { seedStores } from './services/stores';
 
 const env = loadEnv();
@@ -26,6 +26,8 @@ const ctx: Ctx = {
 
 const added = seedStores(ctx);
 if (added) console.log(`Seeded ${added} fixed stores`);
+// A restart ends every discovery that was still running.
+failInterruptedRuns(ctx);
 
 const app = createApp(ctx);
 const base = env.GIER_BASE_PATH;
@@ -78,8 +80,9 @@ if (env.SCHEDULER === 'on') {
             or(isNull(products.lastDiscoveryAt), lte(products.lastDiscoveryAt, weekAgo)),
           ),
         )
-        .limit(2)
-        .all();
+        .all()
+        .filter((p) => discoveryDue(ctx, p.id))
+        .slice(0, 2);
       for (const p of stale) {
         startDiscovery(ctx, {
           productId: p.id,
