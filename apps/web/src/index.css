@@ -1,0 +1,124 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/bricolage-grotesque';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Gier theme (ADR-001): paper, ink, prey lime. Drops and rises also differ in lightness. */
+:root {
+  --radius: 0.875rem;
+  --background: #f5f2ea;
+  --foreground: #16161a;
+  --card: #ffffff;
+  --card-foreground: #16161a;
+  --popover: #ffffff;
+  --popover-foreground: #16161a;
+  --primary: #16161a;
+  --primary-foreground: #f5f2ea;
+  --secondary: #ece7db;
+  --secondary-foreground: #16161a;
+  --muted: #ece7db;
+  --muted-foreground: #5c574e;
+  --accent: #e4ddcc;
+  --accent-foreground: #16161a;
+  --prey: #c8f169;
+  --prey-foreground: #16161a;
+  --destructive: #b42318;
+  --border: #ddd5c4;
+  --input: #ddd5c4;
+  --ring: #16161a;
+  --drop: #c8f169;
+  --drop-foreground: #16161a;
+  --rise: #ffe3d3;
+  --rise-foreground: #9a3412;
+  --chart-1: #16161a;
+  --chart-2: #2f6fdb;
+  --chart-3: #d97706;
+  --chart-4: #8b5cf6;
+  --chart-5: #7a746a;
+}
+
+.dark {
+  --background: #121214;
+  --foreground: #f2efe7;
+  --card: #1b1b1f;
+  --card-foreground: #f2efe7;
+  --popover: #1b1b1f;
+  --popover-foreground: #f2efe7;
+  --primary: #f2efe7;
+  --primary-foreground: #121214;
+  --secondary: #26262b;
+  --secondary-foreground: #f2efe7;
+  --muted: #26262b;
+  --muted-foreground: #a7a299;
+  --accent: #2e2e34;
+  --accent-foreground: #f2efe7;
+  --prey: #c8f169;
+  --prey-foreground: #121214;
+  --border: #2e2e34;
+  --input: #2e2e34;
+  --ring: #c8f169;
+  --rise: #3b1d10;
+  --rise-foreground: #fdba8c;
+  --chart-1: #c8f169;
+}
+
+@theme inline {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Bricolage Grotesque Variable', 'Inter Variable', ui-sans-serif, sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-prey: var(--prey);
+  --color-prey-foreground: var(--prey-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-drop: var(--drop);
+  --color-drop-foreground: var(--drop-foreground);
+  --color-rise: var(--rise);
+  --color-rise-foreground: var(--rise-foreground);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv11';
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+}
+
+@utility font-display {
+  font-family: var(--font-display);
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}

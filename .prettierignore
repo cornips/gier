@@ -1,0 +1,6 @@
+pnpm-lock.yaml
+dist
+coverage
+packages/db/drizzle
+packages/core/test/fixtures
+apps/web/src/components/ui

@@ -1,0 +1,58 @@
+# Gier with its own SearXNG. Usage-based costs only; nothing here costs money by itself.
+#
+#   cp .env.example .env     # optional: add the keys you use
+#   docker compose up -d     # pulls ghcr.io/cornips/gier; `docker compose up -d --build` builds locally
+#
+# Gier listens on port 8787. Put it behind your own reverse proxy if you expose it: it has no login.
+
+services:
+  gier:
+    image: ghcr.io/cornips/gier:latest
+    build: .
+    restart: unless-stopped
+    # Values come from an optional .env next to this file (Compose reads it for ${...}).
+    environment:
+      SEARXNG_URL: http://searxng:8080
+      DATABASE_FILE: /data/gier.db
+      GIER_PUBLIC_URL: ${GIER_PUBLIC_URL:-http://localhost:8787}
+      GIER_BASE_PATH: ${GIER_BASE_PATH:-}
+      GIER_LANGUAGE: ${GIER_LANGUAGE:-en}
+      GIER_SECRET: ${GIER_SECRET:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-}
+      AI_MONTHLY_CAP_EUR: ${AI_MONTHLY_CAP_EUR:-2}
+      BRAVE_API_KEY: ${BRAVE_API_KEY:-}
+      BRAVE_MONTHLY_CAP_USD: ${BRAVE_MONTHLY_CAP_USD:-5}
+      CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
+      CLOUDFLARE_API_TOKEN: ${CLOUDFLARE_API_TOKEN:-}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      NTFY_URL: ${NTFY_URL:-}
+      NTFY_TOKEN: ${NTFY_TOKEN:-}
+      HOME_ASSISTANT_WEBHOOK_URL: ${HOME_ASSISTANT_WEBHOOK_URL:-}
+    ports:
+      - '8787:8787'
+    volumes:
+      # Database and generated secrets (secrets.json). Back this volume up.
+      - gier-data:/data
+    depends_on:
+      - searxng
+    mem_limit: 384m
+
+  searxng:
+    image: searxng/searxng:latest
+    restart: unless-stopped
+    environment:
+      SEARXNG_BASE_URL: http://searxng:8080/
+      # Bind IPv4 only; IPv6 is often unavailable in Docker bridge networks.
+      GRANIAN_HOST: 0.0.0.0
+    volumes:
+      - ./deploy/searxng/settings.yml:/etc/searxng/settings.yml:ro
+    # No published port: only Gier talks to it.
+    mem_limit: 256m
+
+volumes:
+  gier-data:

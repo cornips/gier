@@ -1,0 +1,31 @@
+# Minimal SearXNG config for Gier: JSON output on, Dutch results, a few general web engines.
+use_default_settings:
+  engines:
+    keep_only: [google, bing, duckduckgo, brave]
+
+general:
+  instance_name: gier-search
+
+search:
+  safe_search: 0
+  default_lang: nl-NL
+  formats:
+    - html
+    - json
+
+server:
+  # Internal-only instance (no published port); the key only signs SearXNG's own cookies.
+  secret_key: gier-internal-searxng-instance
+  limiter: false
+  image_proxy: false
+  method: GET
+
+engines:
+  - name: google
+    disabled: false
+  - name: bing
+    disabled: false
+  - name: duckduckgo
+    disabled: false
+  - name: brave
+    disabled: false
