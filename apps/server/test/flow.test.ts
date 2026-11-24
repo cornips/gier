@@ -5,7 +5,6 @@ import { alerts, listings, notifications, pricePoints, products, stores } from '
 import { createApp } from '../src/app';
 import { setLanguage, translator } from '../src/i18n';
 import { decrypt, encrypt } from '../src/lib/crypto';
-import { parseRobots } from '../src/lib/fetcher';
 import { checkListing } from '../src/services/checker';
 import { runDiscovery } from '../src/services/discovery';
 import { seedStores } from '../src/services/stores';
@@ -302,14 +301,5 @@ describe('helpers', () => {
     expect(sealed).not.toContain('sid');
     expect(decrypt(sealed, secret)).toBe('[{"name":"sid","value":"x"}]');
     expect(() => decrypt(sealed, 'another-secret-value')).toThrow();
-  });
-  it('parses robots.txt', () => {
-    expect(
-      parseRobots(
-        'User-agent: *\nDisallow: /cart\n\nUser-agent: GierBot\nDisallow: /search',
-        'gierbot',
-      ),
-    ).toEqual(['/search']);
-    expect(parseRobots('User-agent: *\nDisallow: /cart', 'gierbot')).toEqual(['/cart']);
   });
 });

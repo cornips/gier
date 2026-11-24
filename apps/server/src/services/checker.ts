@@ -49,7 +49,7 @@ export async function fetchOffer(
   });
   let html = res.ok ? res.html : undefined;
   let offer = html ? extractOffer(html, res.url, store?.selectors ?? undefined) : null;
-  if (!offer?.priceCents && res.status !== 999 && (opts.mayRender?.() ?? true)) {
+  if (!offer?.priceCents && (opts.mayRender?.() ?? true)) {
     const rendered = await renderHtml(ctx, url, cookies).catch(() => null);
     if (rendered) {
       html = rendered;
@@ -59,7 +59,6 @@ export async function fetchOffer(
       }
     }
   }
-  if (res.status === 999) return { offer: null, error: 'robots_disallowed' };
   if (!offer?.priceCents)
     return {
       offer,

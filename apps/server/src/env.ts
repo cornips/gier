@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { APP_VERSION } from './version';
 
 const optional = z
   .string()
@@ -20,11 +21,8 @@ const schema = z.object({
   /** Directory with the built web app; served under the base path. */
   WEB_DIST: z.string().default('../web/dist'),
   SCHEDULER: z.enum(['on', 'off']).default('on'),
-  USER_AGENT: z
-    .string()
-    .default(
-      'GierBot/0.1 (+https://github.com/cornips/gier; self-hosted price tracker, low frequency)',
-    ),
+  /** Gier reads pages as its user's agent, not as a crawler, so it does not call itself a bot. */
+  USER_AGENT: z.string().default(`Gier/${APP_VERSION} (+https://github.com/cornips/gier)`),
 
   SEARXNG_URL: optional,
   BRAVE_API_KEY: optional,

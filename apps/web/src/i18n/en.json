@@ -202,7 +202,6 @@
     "unreadHint": "These shops may sell the product, but Gier could not read the price. Open the page to check, or add the link yourself.",
     "unreadReason": {
       "blocked": "blocked by the shop",
-      "robots_disallowed": "not allowed by the shop",
       "no_price": "no price found",
       "http": "error {{code}}",
       "failed": "could not load",

@@ -6,7 +6,7 @@ Thanks for helping Gier circle better.
 - Run `pnpm lint && pnpm typecheck && pnpm test` before opening a pull request.
 - New shop? Add a store to `packages/core/src/stores/registry.ts` and, if JSON-LD is missing, a selector config in
   `packages/core/src/extract/selectors.ts`, plus an HTML fixture in `packages/core/test/fixtures/` with a test.
-- Respect shops: keep request rates low, honour `robots.txt`, and never add code that bypasses logins or bot protection.
+- Respect shops: Gier reads pages on behalf of its user, like a browser, so it does not follow `robots.txt` (that is for crawlers that index or republish). Keep request rates low, and never add code that bypasses logins or bot protection.
 - Only add UI code that may be published under an open-source licence.
 
 ## Translations

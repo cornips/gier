@@ -202,7 +202,6 @@
     "unreadHint": "Deze winkels verkopen het product misschien, maar Gier kon de prijs niet lezen. Open de pagina om te kijken, of voeg de link zelf toe.",
     "unreadReason": {
       "blocked": "geblokkeerd door de winkel",
-      "robots_disallowed": "niet toegestaan door de winkel",
       "no_price": "geen prijs gevonden",
       "http": "fout {{code}}",
       "failed": "kon niet laden",

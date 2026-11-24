@@ -47,6 +47,6 @@ All money is stored in euro cents. Price history is a step series: a price holds
 
 - Single user and no login of its own: put an authenticating reverse proxy in front if you expose Gier.
 - Shop sessions from the login handoff are encrypted with AES-256-GCM (`GIER_SECRET`); passwords never pass through Gier.
-- Outbound requests identify themselves with `USER_AGENT` and respect robots.txt.
+- Outbound requests identify themselves with `USER_AGENT`. Gier reads pages on behalf of its user, like a browser, and does not follow robots.txt; per-domain intervals keep the load low.
 
 Decisions and their reasoning: [docs/adr](adr/README.md).
