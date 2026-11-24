@@ -326,7 +326,7 @@
     "about": "About Gier",
     "notice": "Based on Gier by Martijn Cornips — Apache-2.0",
     "auto": "Automatic",
-    "languageHint": "Follows your browser or system unless you choose one. Missing your language? Translations are welcome on GitHub.",
+    "languageHint": "Translations are welcome via <gh>GitHub</gh>",
     "pushNoKey": "No VAPID key on the server.",
     "pushDenied": "Permission denied.",
     "services": {
@@ -338,7 +338,8 @@
       "telegram": "Fallback when push is not possible (TELEGRAM_BOT_TOKEN + _CHAT_ID).",
       "ntfy": "Self-hosted push service (NTFY_URL).",
       "homeAssistant": "Webhook for automations (HOME_ASSISTANT_WEBHOOK_URL)."
-    }
+    },
+    "interface": "Interface"
   },
   "welcome": {
     "title": "Gier keeps searching when you stop.",

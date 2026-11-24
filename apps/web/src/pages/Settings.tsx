@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Bell, Check, Minus } from 'lucide-react';
 import { api } from '@/lib/api';
@@ -161,47 +161,68 @@ export default function SettingsPage() {
         </ul>
       </section>
 
-      <section className="grid gap-4 rounded-2xl border bg-card p-5 sm:grid-cols-2">
-        <div className="grid gap-2">
-          <h2 className="text-sm font-semibold">{t('settings.theme')}</h2>
-          <ToggleGroup
-            type="single"
-            variant="outline"
-            value={theme}
-            onValueChange={(v) => v && setTheme(v as Theme)}
-            aria-label={t('settings.theme')}
-          >
-            {(['light', 'dark', 'system'] as Theme[]).map((v) => (
-              <ToggleGroupItem key={v} value={v} className="px-3">
-                {t(`settings.${v}`)}
+      <section className="rounded-2xl border bg-card p-5" aria-labelledby="h-interface">
+        <h2 id="h-interface" className="font-semibold">
+          {t('settings.interface')}
+        </h2>
+        {/* content-start: a long hint in one column must not stretch the other column's rows. */}
+        <div className="mt-3 grid items-start gap-4 sm:grid-cols-2">
+          <div className="grid content-start gap-2">
+            <h3 className="text-sm font-semibold">{t('settings.theme')}</h3>
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              value={theme}
+              onValueChange={(v) => v && setTheme(v as Theme)}
+              aria-label={t('settings.theme')}
+            >
+              {(['light', 'dark', 'system'] as Theme[]).map((v) => (
+                <ToggleGroupItem key={v} value={v} className="px-3">
+                  {t(`settings.${v}`)}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
+          <div className="grid content-start gap-2">
+            <h3 className="text-sm font-semibold">{t('settings.language')}</h3>
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              value={langChoice}
+              onValueChange={(v) => {
+                if (!v) return;
+                chooseLanguage(v as LanguageChoice);
+                setLangChoice(v as LanguageChoice);
+              }}
+              aria-label={t('settings.language')}
+              className="flex-wrap"
+            >
+              <ToggleGroupItem value="auto" className="px-3">
+                {t('settings.auto')}
               </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        </div>
-        <div className="grid gap-2">
-          <h2 className="text-sm font-semibold">{t('settings.language')}</h2>
-          <ToggleGroup
-            type="single"
-            variant="outline"
-            value={langChoice}
-            onValueChange={(v) => {
-              if (!v) return;
-              chooseLanguage(v as LanguageChoice);
-              setLangChoice(v as LanguageChoice);
-            }}
-            aria-label={t('settings.language')}
-            className="flex-wrap"
-          >
-            <ToggleGroupItem value="auto" className="px-3">
-              {t('settings.auto')}
-            </ToggleGroupItem>
-            {(Object.entries(LANGUAGES) as [Language, string][]).map(([code, name]) => (
-              <ToggleGroupItem key={code} value={code} lang={code} className="px-3">
-                {name}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-          <p className="text-xs text-muted-foreground">{t('settings.languageHint')}</p>
+              {(Object.entries(LANGUAGES) as [Language, string][]).map(([code, name]) => (
+                <ToggleGroupItem key={code} value={code} lang={code} className="px-3">
+                  {name}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+            <p className="text-xs text-muted-foreground">
+              <Trans
+                i18nKey="settings.languageHint"
+                components={{
+                  // Not "link": the parser treats that tag name as an empty HTML element.
+                  gh: (
+                    <a
+                      href="https://github.com/cornips/gier/blob/main/CONTRIBUTING.md#translations"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline underline-offset-4 hover:text-foreground"
+                    />
+                  ),
+                }}
+              />
+            </p>
+          </div>
         </div>
       </section>
 
