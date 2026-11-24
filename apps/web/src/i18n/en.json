@@ -102,7 +102,10 @@
       "3m": "3M",
       "1y": "1Y",
       "all": "All"
-    }
+    },
+    "seller": "sold by {{name}}, not by the store itself",
+    "blockedHint": "This store does not allow automatic price checks. Check the price yourself with Go to store.",
+    "noPriceYet": "No price yet"
   },
   "finding": {
     "raised_before_sale": "Raised first: just before the sale it was {{before}}, now {{now}}.",

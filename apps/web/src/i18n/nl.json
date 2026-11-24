@@ -102,7 +102,10 @@
       "3m": "3M",
       "1y": "1J",
       "all": "Alles"
-    }
+    },
+    "seller": "verkocht door {{name}}, niet door de winkel zelf",
+    "blockedHint": "Deze winkel staat automatisch uitlezen niet toe. Check de prijs zelf via Naar winkel.",
+    "noPriceYet": "Nog geen prijs"
   },
   "finding": {
     "raised_before_sale": "Eerst verhoogd: vlak voor de actie was het {{before}}, nu {{now}}.",

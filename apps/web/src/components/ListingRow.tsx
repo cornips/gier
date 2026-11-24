@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { AlertTriangle, ExternalLink, Info, Truck } from 'lucide-react';
 import type { ListingView } from '@/lib/types';
 import { euro, relative } from '@/lib/format';
@@ -6,6 +7,15 @@ import { findingText, isWarning } from '@/lib/findings';
 import { PromoLine } from './PromoLine';
 import { Switch } from './ui/switch';
 import { cn } from '@/lib/utils';
+
+/** Readable reason for a failed check; the server stores codes such as `blocked` or `http_503`. */
+function errorText(t: TFunction, code: string): string {
+  if (code.startsWith('seller:')) return t('detail.seller', { name: code.slice('seller:'.length) });
+  const http = /^http_(\d+)$/.exec(code);
+  if (http) return t('wizard.unreadReason.http', { code: http[1] });
+  const key = `wizard.unreadReason.${code}`;
+  return t(key, { defaultValue: code });
+}
 
 const TRUST_DOT = { trusted: 'bg-prey', doubt: 'bg-amber-400', blocked: 'bg-destructive' } as const;
 
@@ -23,6 +33,8 @@ export function ListingRow({
   const { t } = useTranslation();
   const warnings = l.findings.filter(isWarning);
   const info = l.findings.filter((f) => !isWarning(f));
+  // Without any observation, stock and shipping are unknown: do not show defaults.
+  const observed = l.priceCents != null;
   return (
     <li
       className={cn(
@@ -48,21 +60,34 @@ export function ListingRow({
             {l.title ?? l.url}
           </p>
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            <span className={l.inStock === false ? 'font-medium text-rise-foreground' : ''}>
-              {l.inStock === false ? t('detail.outOfStock') : t('detail.inStock')}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <Truck className="size-3" aria-hidden />
-              {l.shippingCents ? euro(l.shippingCents) : t('detail.free')}
-            </span>
+            {observed && (
+              <>
+                <span className={l.inStock === false ? 'font-medium text-rise-foreground' : ''}>
+                  {l.inStock === false ? t('detail.outOfStock') : t('detail.inStock')}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <Truck className="size-3" aria-hidden />
+                  {l.shippingCents ? euro(l.shippingCents) : t('detail.free')}
+                </span>
+              </>
+            )}
             <span>{t('detail.checked', { when: relative(l.lastCheckedAt) })}</span>
-            {l.lastError && <span className="text-rise-foreground">{l.lastError}</span>}
+            {l.lastError && (
+              <span className="text-rise-foreground">{errorText(t, l.lastError)}</span>
+            )}
           </p>
+          {l.lastError === 'blocked' && !observed && (
+            <p className="mt-1 text-xs text-muted-foreground">{t('detail.blockedHint')}</p>
+          )}
         </div>
         <div className="text-right">
-          <p className="font-display text-xl leading-tight font-extrabold tabular">
-            {euro(l.priceCents)}
-          </p>
+          {observed ? (
+            <p className="font-display text-xl leading-tight font-extrabold tabular">
+              {euro(l.priceCents)}
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">{t('detail.noPriceYet')}</p>
+          )}
           {(l.packCount > 1 || compareUnit === 'per100' || l.promotion) &&
             l.unitPriceCents != null && (
               <p className="text-xs text-muted-foreground tabular">
