@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink, Outlet } from 'react-router';
+import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Bell, Coins, Menu, Settings, Store } from 'lucide-react';
@@ -34,6 +34,8 @@ export function AppShell() {
     refetchInterval: 60_000,
   });
   const unread = notifications.data?.filter((n) => !n.readAt).length ?? 0;
+  // The search bar belongs to the products screen; elsewhere it is in the way. ⌘K and / still work.
+  const showSearch = useLocation().pathname === '/';
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -70,7 +72,14 @@ export function AppShell() {
   );
 
   return (
-    <div className="min-h-dvh pb-[calc(env(safe-area-inset-bottom)+5.5rem)] md:pb-10">
+    <div
+      className={cn(
+        'min-h-dvh md:pb-10',
+        showSearch
+          ? 'pb-[calc(env(safe-area-inset-bottom)+5.5rem)]'
+          : 'pb-[calc(env(safe-area-inset-bottom)+1.5rem)]',
+      )}
+    >
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-card focus:px-3 focus:py-2"
@@ -82,10 +91,12 @@ export function AppShell() {
           <Link to="/" aria-label={t('nav.home')} className="rounded-md">
             <Wordmark />
           </Link>
-          <SearchTrigger
-            onClick={() => setSearchOpen(true)}
-            className="mx-auto hidden max-w-xl md:flex"
-          />
+          {showSearch && (
+            <SearchTrigger
+              onClick={() => setSearchOpen(true)}
+              className="mx-auto hidden max-w-xl md:flex"
+            />
+          )}
           <nav
             aria-label={t('common.mainMenu')}
             className="ml-auto hidden items-center gap-1 md:flex"
@@ -158,22 +169,18 @@ export function AppShell() {
 
       <main id="main" className="mx-auto max-w-6xl px-4 pt-6">
         <ErrorBoundary>
-          <Outlet context={{ openSearch: () => setSearchOpen(true) }} />
+          <Outlet
+            context={{ openSearch: () => setSearchOpen(true), openFeedback } satisfies ShellContext}
+          />
         </ErrorBoundary>
       </main>
 
-      {/* Wide screens have no menu sheet: version and feedback sit at the bottom of the page. */}
-      <footer className="mx-auto hidden max-w-6xl px-4 pt-10 pb-6 md:block">
-        <AppInfo
-          className="flex flex-row flex-wrap items-center gap-2 border-t pt-3"
-          onFeedback={openFeedback}
-        />
-      </footer>
-
-      {/* Mobile: search lives at the bottom, within thumb reach. */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/90 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur md:hidden">
-        <SearchTrigger onClick={() => setSearchOpen(true)} />
-      </div>
+      {/* Mobile: on the products screen search lives at the bottom, within thumb reach. */}
+      {showSearch && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/90 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur md:hidden">
+          <SearchTrigger onClick={() => setSearchOpen(true)} />
+        </div>
+      )}
 
       <SearchCommand open={searchOpen} onOpenChange={setSearchOpen} />
       <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
@@ -183,4 +190,6 @@ export function AppShell() {
 
 export interface ShellContext {
   openSearch: () => void;
+  /** The feedback dialog lives in the shell, so it survives closing the menu. */
+  openFeedback: () => void;
 }

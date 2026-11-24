@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { useOutletContext } from 'react-router';
 import { Trans, useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { Bell, Check, Minus } from 'lucide-react';
@@ -11,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { LogoMark } from '@/components/Logo';
 import { TelegramLink } from '@/components/TelegramLink';
+import { AppInfo } from '@/components/AppInfo';
+import type { ShellContext } from '@/components/AppShell';
 import {
   chooseLanguage,
   languageChoice,
@@ -56,6 +59,7 @@ const CHANNELS: { key: keyof Health['features']; label: string }[] = [
 ];
 
 export default function SettingsPage() {
+  const { openFeedback } = useOutletContext<ShellContext>();
   const { t } = useTranslation();
   const { theme, setTheme } = useTheme();
   const [langChoice, setLangChoice] = useState<LanguageChoice>(languageChoice);
@@ -251,6 +255,9 @@ export default function SettingsPage() {
           </p>
         </div>
       </section>
+
+      {/* Alpha: feedback and the build version, only here. Tapping the version reloads everything. */}
+      <AppInfo className="flex flex-row flex-wrap items-center gap-2" onFeedback={openFeedback} />
     </div>
   );
 }
