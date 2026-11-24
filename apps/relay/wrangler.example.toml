@@ -1,0 +1,32 @@
+# gier-relay (ADR-016). Copy this file to wrangler.toml (git-ignored), create the D1 database and put its id below, then set the
+# secrets with `wrangler secret put <NAME>`. Secrets never go in this file.
+#
+#   TELEGRAM_BOT_TOKEN       token from @BotFather
+#   TELEGRAM_WEBHOOK_SECRET  random 1–256 chars of A-Z a-z 0-9 _ - (also passed to setWebhook)
+#   DATA_KEY                 32 random bytes, base64url (encrypts chat ids, keys pseudonyms)
+#   REGISTRATION_TOKEN       hand this to installations you allow; unset = registration closed
+#   NOTION_TOKEN             optional: Notion connection with "Insert content" on the feedback database
+name = "gier-relay"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+workers_dev = true
+
+[vars]
+BOT_USERNAME = "your_bot_username"
+# Optional: Notion database for /feedback (same schema as the in-app feedback, see .env.example).
+NOTION_FEEDBACK_DATABASE_ID = ""
+# Notifications per installation per UTC day.
+DAILY_NOTIFICATION_LIMIT = "300"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "gier-relay"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[triggers]
+# Retry feedback that could not reach Notion and clear expired codes and nonces.
+crons = ["*/15 * * * *"]
+
+[observability]
+enabled = true

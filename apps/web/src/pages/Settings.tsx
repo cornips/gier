@@ -10,6 +10,7 @@ import type { Health } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { LogoMark } from '@/components/Logo';
+import { TelegramLink } from '@/components/TelegramLink';
 import {
   chooseLanguage,
   languageChoice,
@@ -130,6 +131,7 @@ export default function SettingsPage() {
             </Button>
           </span>
         </div>
+        <TelegramLink />
         <ul className="mt-2">
           {f &&
             CHANNELS.map((c) => (

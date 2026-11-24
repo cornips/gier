@@ -339,7 +339,20 @@
       "ntfy": "Zelf gehoste pushdienst (NTFY_URL).",
       "homeAssistant": "Webhook voor automatiseringen (HOME_ASSISTANT_WEBHOOK_URL)."
     },
-    "interface": "Interface"
+    "interface": "Interface",
+    "telegram": {
+      "title": "Telegram",
+      "hint": "Meldingen in Telegram via de gedeelde Gier-bot, alleen voor jou.",
+      "link": "Koppel Telegram",
+      "open": "Open Telegram",
+      "waiting": "Tik in Telegram op Start. Deze pagina werkt zichzelf bij.",
+      "linked_one": "Gekoppeld aan {{count}} chat",
+      "linked_other": "Gekoppeld aan {{count}} chats",
+      "linkedToast": "Telegram gekoppeld",
+      "unlink": "Ontkoppel",
+      "unlinked": "Telegram ontkoppeld",
+      "failed": "De Telegram-dienst is nu niet bereikbaar."
+    }
   },
   "welcome": {
     "title": "Gier speurt verder als jij stopt.",

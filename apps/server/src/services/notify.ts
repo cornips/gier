@@ -2,7 +2,8 @@ import * as webpush from 'web-push';
 import { eq } from 'drizzle-orm';
 import { notifications, pushSubscriptions, type Notification } from '@gier/db';
 import type { Ctx } from '../context';
-import { translator } from '../i18n';
+import { language, translator } from '../i18n';
+import { relayClient, telegramMode } from './relay';
 
 export interface NewNotification {
   productId?: number | null;
@@ -60,9 +61,30 @@ async function sendWebPush(ctx: Ctx, n: NewNotification): Promise<boolean> {
   return sent;
 }
 
+/** Shared bot (ADR-016): the relay sends to every chat linked to this installation. */
+async function sendViaRelay(ctx: Ctx, n: NewNotification): Promise<boolean> {
+  const client = relayClient(ctx);
+  if (!client) return false;
+  try {
+    const r = await client.notify({
+      kind: n.kind,
+      title: n.title.slice(0, 120),
+      body: n.body.slice(0, 600),
+      path: n.productId ? `/p/${n.productId}` : '/notifications',
+      lang: language(ctx),
+    });
+    return r.sent > 0;
+  } catch (e) {
+    console.warn('Telegram via relay failed', e);
+    return false;
+  }
+}
+
 async function sendTelegram(ctx: Ctx, n: NewNotification): Promise<boolean> {
+  const mode = telegramMode(ctx);
+  if (mode === 'relay') return sendViaRelay(ctx, n);
+  if (mode === 'off') return false;
   const { TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID } = ctx.env;
-  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return false;
   const res = await ctx
     .http(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',

@@ -339,7 +339,20 @@
       "ntfy": "Self-hosted push service (NTFY_URL).",
       "homeAssistant": "Webhook for automations (HOME_ASSISTANT_WEBHOOK_URL)."
     },
-    "interface": "Interface"
+    "interface": "Interface",
+    "telegram": {
+      "title": "Telegram",
+      "hint": "Alerts in Telegram via the shared Gier bot, for you only.",
+      "link": "Link Telegram",
+      "open": "Open Telegram",
+      "waiting": "Tap Start in Telegram. This page updates by itself.",
+      "linked_one": "Linked to {{count}} chat",
+      "linked_other": "Linked to {{count}} chats",
+      "linkedToast": "Telegram linked",
+      "unlink": "Unlink",
+      "unlinked": "Telegram unlinked",
+      "failed": "The Telegram service cannot be reached right now."
+    }
   },
   "welcome": {
     "title": "Gier keeps searching when you stop.",

@@ -14,6 +14,7 @@ import type {
   AdviceMode,
   AlertKind,
   Trust,
+  TelegramStatus,
 } from './types';
 
 /**
@@ -172,6 +173,11 @@ export const api = {
   subscribe: (sub: PushSubscriptionJSON) =>
     request<{ ok: true }>('/push/subscribe', { method: 'POST', json: sub }),
   testPush: () => request<unknown>('/push/test', { method: 'POST' }),
+  telegram: () => request<TelegramStatus>('/telegram'),
+  telegramLink: () =>
+    request<{ url: string; expiresAt: string }>('/telegram/link', { method: 'POST' }),
+  telegramUnlink: (id: string) =>
+    request<{ ok: true }>(`/telegram/links/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   costs: () => request<Costs>('/costs'),
   setLanguage: (language: string) =>
     request<{ language: string }>('/settings/language', { method: 'PUT', json: { language } }),

@@ -18,3 +18,4 @@ Short records of the main decisions and why they were made. New decisions get a 
 | [ADR-012](0012-licence.md)                                     | Licence                                       | Accepted |
 | [ADR-013](0013-starting-list-of-fixed-stores.md)               | Starting list of fixed stores                 | Accepted |
 | [ADR-014](0014-shops-that-need-a-login.md)                     | Shops that need a login                       | Accepted |
+| [ADR-016](0016-shared-telegram-bot-relay.md)                   | Shared Telegram bot through a relay           | Accepted |

@@ -10,7 +10,10 @@ COPY apps/server/package.json apps/server/
 COPY apps/web/package.json apps/web/
 COPY packages/core/package.json packages/core/
 COPY packages/db/package.json packages/db/
-RUN pnpm install --frozen-lockfile
+COPY packages/relay-protocol/package.json packages/relay-protocol/
+COPY apps/relay/package.json apps/relay/
+# Only what the image needs; the relay (apps/relay) is deployed to Cloudflare separately.
+RUN pnpm install --frozen-lockfile --filter "@gier/server..." --filter "@gier/web..."
 COPY . .
 ARG GIT_SHA=
 RUN GIT_SHA=$GIT_SHA pnpm --filter @gier/web build \

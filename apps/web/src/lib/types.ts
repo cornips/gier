@@ -233,3 +233,9 @@ export interface Handoff {
   liveViewUrl?: string;
   error?: string;
 }
+
+export interface TelegramStatus {
+  /** relay = shared bot, each user links their own chat; direct = one bot and chat set on the server. */
+  mode: 'relay' | 'direct' | 'off';
+  links: { id: string; createdAt: string }[];
+}

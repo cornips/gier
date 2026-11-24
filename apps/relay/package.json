@@ -1,0 +1,28 @@
+{
+  "name": "@gier/relay",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "gier-relay: one shared Telegram bot for every Gier installation (ADR-016). Cloudflare Worker + D1.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "migrate": "wrangler d1 migrations apply gier-relay --remote",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@gier/relay-protocol": "workspace:*",
+    "hono": "^4.13.20",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261124.1",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.10.0",
+    "better-sqlite3": "^13.2.0",
+    "vitest": "^5.1.1",
+    "wrangler": "^4.167.0"
+  }
+}

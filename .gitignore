@@ -13,3 +13,7 @@ data/
 *.db-shm
 dev-dist/
 .vite/
+
+# Local relay deployment config (copy of apps/relay/wrangler.example.toml)
+apps/relay/wrangler.toml
+.wrangler/

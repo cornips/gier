@@ -15,3 +15,5 @@
 - One build serves Gier at the site root or below any path (`GIER_BASE_PATH`).
 - Docker image on GHCR, `compose.yaml` with SearXNG; secrets generated on first start; GitHub Actions CI.
 - Demo data script for trying Gier without real shops.
+- Shared Telegram bot through gier-relay (ADR-016): a Cloudflare Worker that keeps the bot token, signed
+  requests from installations, linking per user with a one-time `/start` code, and `/feedback` for alpha testers.

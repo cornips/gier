@@ -45,6 +45,12 @@ const schema = z.object({
 
   TELEGRAM_BOT_TOKEN: optional,
   TELEGRAM_CHAT_ID: optional,
+  /**
+   * Shared Telegram bot through gier-relay (ADR-016). Both set = users link their own chat from
+   * Settings; this takes precedence over TELEGRAM_BOT_TOKEN/_CHAT_ID.
+   */
+  GIER_RELAY_URL: optional,
+  GIER_RELAY_REGISTRATION_TOKEN: optional,
   NTFY_URL: optional,
   NTFY_TOKEN: optional,
   HOME_ASSISTANT_WEBHOOK_URL: optional,

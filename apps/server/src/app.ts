@@ -44,6 +44,8 @@ import {
 import { checkListing, fetchOffer, recordObservation } from './services/checker';
 import { markRunSeen, startDiscovery } from './services/discovery';
 import { notify } from './services/notify';
+import { RelayError } from '@gier/relay-protocol';
+import { relayClient, relaySubject, telegramMode } from './services/relay';
 import {
   allowFeedback,
   FEEDBACK_KINDS,
@@ -167,7 +169,7 @@ export function createApp(ctx: Ctx) {
         ai: Boolean(ctx.env.ANTHROPIC_API_KEY),
         browserRun: browserRunAvailable(ctx),
         push: Boolean(ctx.env.VAPID_PUBLIC_KEY),
-        telegram: Boolean(ctx.env.TELEGRAM_BOT_TOKEN),
+        telegram: telegramMode(ctx) !== 'off',
         ntfy: Boolean(ctx.env.NTFY_URL),
         homeAssistant: Boolean(ctx.env.HOME_ASSISTANT_WEBHOOK_URL),
       },
@@ -767,6 +769,53 @@ export function createApp(ctx: Ctx) {
       urgent: true,
     });
     return c.json(n);
+  });
+
+  // Telegram (ADR-016). With the shared bot every signed-in user links their own chat.
+  const telegramUser = (c: Context) => c.req.header('cf-access-authenticated-user-email') ?? null;
+  const relayFailure = (c: Context, e: unknown) => {
+    console.warn('Relay request failed', e);
+    const status = e instanceof RelayError && e.status === 429 ? 429 : 502;
+    return c.json({ error: e instanceof RelayError ? e.code : 'relay_unreachable' }, status);
+  };
+
+  api.get('/telegram', async (c) => {
+    const mode = telegramMode(ctx);
+    const client = relayClient(ctx);
+    if (!client) return c.json({ mode, links: [] });
+    try {
+      const links = await client.links(relaySubject(ctx, telegramUser(c)));
+      return c.json({ mode, links: links.map((l) => ({ id: l.id, createdAt: l.created_at })) });
+    } catch (e) {
+      return relayFailure(c, e);
+    }
+  });
+
+  api.post('/telegram/link', async (c) => {
+    const client = relayClient(ctx);
+    if (!client) return c.json({ error: 'relay_not_configured' }, 409);
+    try {
+      const code = await client.createLinkCode(relaySubject(ctx, telegramUser(c)), language(ctx));
+      c.header('cache-control', 'no-store');
+      return c.json({ url: code.url, expiresAt: code.expires_at });
+    } catch (e) {
+      return relayFailure(c, e);
+    }
+  });
+
+  api.delete('/telegram/links/:id', async (c) => {
+    const client = relayClient(ctx);
+    if (!client) return c.json({ error: 'relay_not_configured' }, 409);
+    try {
+      // Only your own links: check them against your subject first.
+      const mine = await client.links(relaySubject(ctx, telegramUser(c)));
+      const id = c.req.param('id');
+      if (!mine.some((l) => l.id === id)) return c.json({ error: 'not_found' }, 404);
+      await client.unlink(id);
+      return c.json({ ok: true });
+    } catch (e) {
+      return relayFailure(c, e);
+    }
   });
 
   // Costs (ADR-009)
