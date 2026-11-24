@@ -251,7 +251,13 @@ export async function runDiscovery(
         const r = await storeSearch(ctx, s, q).catch(() => ({ urls: [], error: 'failed' }));
         stats.storeSearches! += 1;
         if (r.urls.length) return r.urls;
-        if (r.error) unread.push({ url: s.rules!.search!.url, domain: s.domain, reason: r.error });
+        if (r.error)
+          unread.push({
+            // The search page as Gier asked for it, not the template with {q}.
+            url: s.rules!.search!.url.replace('{q}', encodeURIComponent(q)),
+            domain: s.domain,
+            reason: r.error,
+          });
       }
       return [];
     }),
