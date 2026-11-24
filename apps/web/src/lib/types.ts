@@ -24,8 +24,18 @@ export type AlertKind =
 export interface Health {
   ok: boolean;
   version: string;
+  /** Commit the server image was built from, when known. */
+  commit: string | null;
   features: Record<
-    'searxng' | 'brave' | 'ai' | 'browserRun' | 'push' | 'telegram' | 'ntfy' | 'homeAssistant',
+    | 'searxng'
+    | 'brave'
+    | 'ai'
+    | 'browserRun'
+    | 'push'
+    | 'telegram'
+    | 'ntfy'
+    | 'homeAssistant'
+    | 'feedback',
     boolean
   >;
 }

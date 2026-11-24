@@ -24,6 +24,15 @@ i18n.on('languageChanged', reportLanguage);
  * within a few minutes means the login did not help (e.g. access was withdrawn): then the error screen
  * with a sign-in button stays, instead of a redirect loop.
  */
+// A hard refresh (see lib/build.ts) adds ?refresh= to bypass every cache; drop it from the address.
+{
+  const url = new URL(window.location.href);
+  if (url.searchParams.has('refresh')) {
+    url.searchParams.delete('refresh');
+    window.history.replaceState(window.history.state, '', url.toString());
+  }
+}
+
 const RELOGIN_KEY = 'gier.reloginAt';
 function onAuthLost(error: unknown) {
   if (!isAuthError(error)) return;

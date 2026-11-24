@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Bell, Coins, Menu, Settings, Store } from 'lucide-react';
+import { AppInfo, FeedbackDialog } from './AppInfo';
 import { ErrorBoundary } from './ErrorBoundary';
 import { InstallBanner } from './InstallBanner';
 import { Wordmark } from './Logo';
@@ -22,6 +23,11 @@ export function AppShell() {
   const { t } = useTranslation();
   const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const openFeedback = () => {
+    setMenuOpen(false);
+    setFeedbackOpen(true);
+  };
   const notifications = useQuery({
     queryKey: ['notifications'],
     queryFn: api.notifications,
@@ -109,7 +115,7 @@ export function AppShell() {
                   <Menu />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-72">
+              <SheetContent side="right" className="flex w-72 flex-col">
                 <SheetHeader>
                   <SheetTitle>
                     <Wordmark />
@@ -136,6 +142,10 @@ export function AppShell() {
                     ),
                   )}
                 </nav>
+                <AppInfo
+                  className="mt-auto border-t px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]"
+                  onFeedback={openFeedback}
+                />
               </SheetContent>
             </Sheet>
           </div>
@@ -152,12 +162,21 @@ export function AppShell() {
         </ErrorBoundary>
       </main>
 
+      {/* Wide screens have no menu sheet: version and feedback sit at the bottom of the page. */}
+      <footer className="mx-auto hidden max-w-6xl px-4 pt-10 pb-6 md:block">
+        <AppInfo
+          className="flex flex-row flex-wrap items-center gap-2 border-t pt-3"
+          onFeedback={openFeedback}
+        />
+      </footer>
+
       {/* Mobile: search lives at the bottom, within thumb reach. */}
       <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/90 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur md:hidden">
         <SearchTrigger onClick={() => setSearchOpen(true)} />
       </div>
 
       <SearchCommand open={searchOpen} onOpenChange={setSearchOpen} />
+      <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
     </div>
   );
 }

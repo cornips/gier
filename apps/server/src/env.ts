@@ -48,6 +48,17 @@ const schema = z.object({
   NTFY_URL: optional,
   NTFY_TOKEN: optional,
   HOME_ASSISTANT_WEBHOOK_URL: optional,
+
+  /**
+   * In-app feedback to a Notion database (alpha testing). Token of a Notion connection that may only
+   * insert into that database. Both empty = the feedback option is hidden.
+   */
+  NOTION_TOKEN: optional,
+  NOTION_FEEDBACK_DATABASE_ID: optional,
+  /** Name of this installation in feedback rows; defaults to the host of GIER_PUBLIC_URL. */
+  GIER_INSTANCE_NAME: optional,
+  /** Commit the image was built from (set by the Docker build). */
+  GIER_COMMIT: optional,
 });
 
 export type Env = z.infer<typeof schema>;

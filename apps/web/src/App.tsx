@@ -5,6 +5,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { PageSpinner } from './components/States';
 import { OverviewPage } from './pages/Overview';
 import { ProductDialog, ProductPage } from './pages/ProductDetail';
+import { useMediaQuery, WIDE } from './lib/media';
 
 const WizardPage = lazy(() => import('./pages/Wizard'));
 const StoresPage = lazy(() => import('./pages/Stores'));
@@ -15,11 +16,15 @@ const WelcomePage = lazy(() => import('./pages/Welcome'));
 
 /**
  * Product detail opens as a dialog over the page you came from (background location) and as a
- * full page on a direct visit, e.g. from a notification. Same URL either way: /p/:id.
+ * full page on a direct visit, e.g. from a notification. Same URL either way: /p/:id. On small
+ * screens it is always a page: a dialog over the overview adds nothing there.
  */
 export function App() {
   const location = useLocation();
-  const background = (location.state as { background?: Location } | null)?.background;
+  const wide = useMediaQuery(WIDE);
+  const background = wide
+    ? (location.state as { background?: Location } | null)?.background
+    : undefined;
   return (
     <ErrorBoundary>
       <Suspense fallback={<PageSpinner />}>

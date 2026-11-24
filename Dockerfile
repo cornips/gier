@@ -12,12 +12,15 @@ COPY packages/core/package.json packages/core/
 COPY packages/db/package.json packages/db/
 RUN pnpm install --frozen-lockfile
 COPY . .
-RUN pnpm --filter @gier/web build \
+ARG GIT_SHA=
+RUN GIT_SHA=$GIT_SHA pnpm --filter @gier/web build \
  && pnpm --filter @gier/server --prod deploy --legacy /out \
  && cp -r apps/web/dist /out/web
 
 FROM node:22-bookworm-slim
 WORKDIR /app
+ARG GIT_SHA=
+ENV GIER_COMMIT=$GIT_SHA
 ENV NODE_ENV=production \
     PORT=8787 \
     DATABASE_FILE=/data/gier.db \

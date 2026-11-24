@@ -2,11 +2,22 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath, URL } from 'node:url';
+
+const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as {
+  version: string;
+};
+/** CI passes the commit (Docker build argument GIT_SHA); local builds show the version only. */
+const commit = (process.env.GIT_SHA ?? '').slice(0, 7);
 
 // Relative URLs: one build works at the site root or below any path. The server adds <base href>.
 export default defineConfig({
   base: './',
+  define: {
+    __GIER_VERSION__: JSON.stringify(pkg.version),
+    __GIER_COMMIT__: JSON.stringify(commit),
+  },
   plugins: [
     react(),
     tailwindcss(),

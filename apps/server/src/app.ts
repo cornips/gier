@@ -44,6 +44,14 @@ import {
 import { checkListing, fetchOffer, recordObservation } from './services/checker';
 import { markRunSeen, startDiscovery } from './services/discovery';
 import { notify } from './services/notify';
+import {
+  allowFeedback,
+  FEEDBACK_KINDS,
+  feedbackAvailable,
+  pseudonym,
+  sendFeedback,
+} from './services/feedback';
+import { APP_VERSION } from './version';
 import { listProducts, productDetail } from './services/products';
 import { braveSpentThisMonth, webSearch } from './services/search';
 import { ensureStore } from './services/stores';
@@ -124,11 +132,36 @@ export function createApp(ctx: Ctx) {
     return c.redirect(safe, 302);
   });
 
+  /** In-app feedback (alpha): one row in the configured Notion database. */
+  api.post('/feedback', async (c) => {
+    if (!feedbackAvailable(ctx)) return c.json({ error: 'feedback_unavailable' }, 503);
+    const body = z
+      .object({
+        kind: z.enum(FEEDBACK_KINDS),
+        message: z.string().trim().min(3).max(2000),
+        lang: z.enum(['en', 'nl']).default('en'),
+        context: z.record(z.string().max(60), z.string().max(300)).default({}),
+      })
+      .parse(await c.req.json());
+    // Cloudflare Access tells who is signed in; only a keyed hash of it leaves this server.
+    const user = c.req.header('cf-access-authenticated-user-email') ?? null;
+    if (!allowFeedback(pseudonym(ctx, user))) return c.json({ error: 'too_many_requests' }, 429);
+    try {
+      await sendFeedback(ctx, { ...body, user });
+      return c.json({ ok: true });
+    } catch (e) {
+      console.warn('Feedback to Notion failed', e);
+      return c.json({ error: 'feedback_failed' }, 502);
+    }
+  });
+
   api.get('/health', (c) =>
     c.json({
       ok: true,
-      version: '0.1.0',
+      version: APP_VERSION,
+      commit: ctx.env.GIER_COMMIT?.slice(0, 7) ?? null,
       features: {
+        feedback: feedbackAvailable(ctx),
         searxng: Boolean(ctx.env.SEARXNG_URL),
         brave: Boolean(ctx.env.BRAVE_API_KEY),
         ai: Boolean(ctx.env.ANTHROPIC_API_KEY),

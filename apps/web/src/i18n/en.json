@@ -410,5 +410,29 @@
   "promo": {
     "each": "→ {{price}} each when you buy {{count}}",
     "withCard": "With loyalty card: {{deal}} → {{price}} each"
+  },
+  "feedback": {
+    "open": "Send feedback",
+    "title": "Send feedback",
+    "hint": "Something broken, unclear or missing? Tell us. It goes straight to the backlog.",
+    "kind": "Type",
+    "kinds": {
+      "bug": "Bug",
+      "idea": "Idea",
+      "question": "Question",
+      "other": "Other"
+    },
+    "message": "Your feedback",
+    "placeholder": "What happened, and what did you expect?",
+    "privacy": "Sent along: this page, the app version, your screen size and browser. Not your email address.",
+    "send": "Send",
+    "thanks": "Thanks! Your feedback has been sent.",
+    "failed": "Sending failed. Try again later.",
+    "tooMany": "You sent several messages just now. Try again in a few minutes."
+  },
+  "build": {
+    "version": "Version {{version}}",
+    "refreshHint": "Tap to reload the app completely from the server",
+    "update": "update"
   }
 }

@@ -91,6 +91,12 @@ export interface CreateProductInput {
 
 export const api = {
   health: () => request<Health>('/health'),
+  sendFeedback: (body: {
+    kind: 'bug' | 'idea' | 'question' | 'other';
+    message: string;
+    lang: 'en' | 'nl';
+    context: Record<string, string>;
+  }) => request<{ ok: true }>('/feedback', { method: 'POST', json: body }),
   products: () => request<ProductSummary[]>('/products'),
   product: (id: number) => request<ProductDetail>(`/products/${id}`),
   createProduct: (input: CreateProductInput) =>

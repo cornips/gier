@@ -410,5 +410,29 @@
   "promo": {
     "each": "→ {{price}} per stuk bij {{count}} stuks",
     "withCard": "Met klantenkaart: {{deal}} → {{price}} per stuk"
+  },
+  "feedback": {
+    "open": "Verstuur feedback",
+    "title": "Verstuur feedback",
+    "hint": "Iets kapot, onduidelijk of mis je iets? Laat het weten. Het komt direct op de backlog.",
+    "kind": "Soort",
+    "kinds": {
+      "bug": "Bug",
+      "idea": "Idee",
+      "question": "Vraag",
+      "other": "Overig"
+    },
+    "message": "Je feedback",
+    "placeholder": "Wat gebeurde er, en wat verwachtte je?",
+    "privacy": "We sturen mee: deze pagina, de app-versie, je schermgrootte en browser. Niet je e-mailadres.",
+    "send": "Versturen",
+    "thanks": "Bedankt! Je feedback is verstuurd.",
+    "failed": "Versturen mislukt. Probeer het later opnieuw.",
+    "tooMany": "Je stuurde net al een paar berichten. Probeer het over een paar minuten opnieuw."
+  },
+  "build": {
+    "version": "Versie {{version}}",
+    "refreshHint": "Tik om de app volledig opnieuw van de server te laden",
+    "update": "update"
   }
 }
