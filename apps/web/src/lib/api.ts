@@ -36,20 +36,44 @@ export class ApiError extends Error {
   }
 }
 
+/** The session ended: a proxy in front of Gier (e.g. Cloudflare Access) wants the user to sign in again. */
+export const AUTH_REQUIRED = 'auth_required';
+export const OFFLINE = 'offline';
+
+export const isAuthError = (e: unknown) => e instanceof ApiError && e.code === AUTH_REQUIRED;
+
+/** Sends the browser through the login page and back to where the user was. */
+export function signInAgain() {
+  const next = window.location.pathname + window.location.search;
+  window.location.assign(`${API}/login?next=${encodeURIComponent(next)}`);
+}
+
 async function request<T>(path: string, init?: RequestInit & { json?: unknown }): Promise<T> {
   const { json, ...rest } = init ?? {};
-  const res = await fetch(`${API}${path}`, {
-    ...rest,
-    headers: {
-      ...(json !== undefined ? { 'content-type': 'application/json' } : {}),
-      ...rest.headers,
-    },
-    body: json !== undefined ? JSON.stringify(json) : rest.body,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API}${path}`, {
+      ...rest,
+      // A login redirect must not be followed by fetch: it would end in a cross-site error.
+      redirect: 'manual',
+      headers: {
+        ...(json !== undefined ? { 'content-type': 'application/json' } : {}),
+        ...rest.headers,
+      },
+      body: json !== undefined ? JSON.stringify(json) : rest.body,
+    });
+  } catch {
+    throw new ApiError(0, navigator.onLine === false ? OFFLINE : 'network_error');
+  }
+  const isJson = res.headers.get('content-type')?.includes('application/json') ?? false;
+  // Gier itself always answers in JSON; a redirect or a bare 401/403 comes from the login proxy.
+  if (res.type === 'opaqueredirect' || ((res.status === 401 || res.status === 403) && !isJson))
+    throw new ApiError(401, AUTH_REQUIRED);
   if (!res.ok) {
     const body = (await res.json().catch(() => ({}))) as { error?: string };
     throw new ApiError(res.status, body.error ?? res.statusText);
   }
+  if (!isJson) throw new ApiError(res.status, 'unexpected_response');
   return (await res.json()) as T;
 }
 

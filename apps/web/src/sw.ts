@@ -1,10 +1,7 @@
 /// <reference lib="webworker" />
-import {
-  precacheAndRoute,
-  cleanupOutdatedCaches,
-  createHandlerBoundToURL,
-} from 'workbox-precaching';
+import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
+import { NetworkFirst } from 'workbox-strategies';
 
 declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<{ url: string; revision: string | null }>;
@@ -14,9 +11,14 @@ cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 
 const scope = new URL(self.registration.scope).pathname;
-// SPA navigation fallback; the API is never cached so prices are always live.
+/*
+ * Pages always come from the network first. A proxy in front of Gier (such as Cloudflare Access) must
+ * see every page load: when the session ended it answers with a redirect to its login, which the
+ * browser then follows. Serving a cached page instead would show an app whose every request fails.
+ * The last good page is kept only for when there is no network at all. The API is never cached.
+ */
 registerRoute(
-  new NavigationRoute(createHandlerBoundToURL(`${scope}index.html`), {
+  new NavigationRoute(new NetworkFirst({ cacheName: 'gier-pages', networkTimeoutSeconds: 6 }), {
     denylist: [new RegExp(`^${scope}api/`)],
   }),
 );

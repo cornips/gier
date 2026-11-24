@@ -17,9 +17,10 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',
-      // Precache the app shell and Latin fonts only; other scripts load on demand via unicode-range.
+      // Precache scripts, styles, icons and Latin fonts only; other scripts load on demand via
+      // unicode-range. The page itself is never precached: it must come from the network (see sw.ts).
       injectManifest: {
-        globPatterns: ['**/*.{js,css,html,svg,png}', '**/*-latin-wght-normal-*.woff2'],
+        globPatterns: ['**/*.{js,css,svg,png}', '**/*-latin-wght-normal-*.woff2'],
       },
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icon-512-maskable.png'],
       manifest: {

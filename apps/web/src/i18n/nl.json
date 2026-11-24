@@ -373,7 +373,16 @@
     "menu": "Menu",
     "crashTitle": "Er ging iets mis op dit scherm",
     "crashHint": "De rest van Gier werkt nog. Probeer het opnieuw of ga terug naar het overzicht.",
-    "crashDetails": "Technische details"
+    "crashDetails": "Technische details",
+    "signedOut": "Je sessie is verlopen",
+    "signedOutHint": "Log opnieuw in om je producten te zien. Gier blijft intussen prijzen volgen.",
+    "signIn": "Opnieuw inloggen",
+    "errors": {
+      "offline": "Je bent offline. Gier probeert het opnieuw zodra er verbinding is.",
+      "network_error": "Gier is nu niet bereikbaar. Probeer het zo opnieuw.",
+      "unexpected_response": "Gier gaf een onverwacht antwoord. Probeer het opnieuw of herlaad de app.",
+      "internal_error": "Er ging iets mis op de server."
+    }
   },
   "reason": {
     "no_key": "Geen Anthropic-sleutel ingesteld",

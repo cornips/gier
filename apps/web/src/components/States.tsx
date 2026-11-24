@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
 import { Button } from './ui/button';
 import { LogoMark } from './Logo';
+import { ApiError, isAuthError, signInAgain } from '@/lib/api';
 
 export function PageSpinner() {
   const { t } = useTranslation();
@@ -16,15 +17,30 @@ export function PageSpinner() {
 
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const { t } = useTranslation();
+  if (isAuthError(error))
+    return (
+      <div
+        role="alert"
+        className="mx-auto grid max-w-md place-items-center gap-3 rounded-xl border bg-card p-8 text-center"
+      >
+        <p className="font-medium">{t('common.signedOut')}</p>
+        <p className="text-sm text-muted-foreground">{t('common.signedOutHint')}</p>
+        <Button onClick={signInAgain}>{t('common.signIn')}</Button>
+      </div>
+    );
+  const message =
+    error instanceof ApiError
+      ? t(`common.errors.${error.code}`, { defaultValue: error.message })
+      : error instanceof Error
+        ? error.message
+        : String(error);
   return (
     <div
       role="alert"
       className="mx-auto grid max-w-md place-items-center gap-3 rounded-xl border bg-card p-8 text-center"
     >
       <p className="font-medium">{t('common.error')}</p>
-      <p className="text-sm text-muted-foreground">
-        {error instanceof Error ? error.message : String(error)}
-      </p>
+      <p className="text-sm text-muted-foreground">{message}</p>
       {onRetry && (
         <Button variant="outline" onClick={onRetry}>
           {t('common.retry')}

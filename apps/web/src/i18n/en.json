@@ -373,7 +373,16 @@
     "menu": "Menu",
     "crashTitle": "Something went wrong on this screen",
     "crashHint": "The rest of Gier still works. Try again, or go back to the overview.",
-    "crashDetails": "Technical details"
+    "crashDetails": "Technical details",
+    "signedOut": "Your session has ended",
+    "signedOutHint": "Sign in again to see your products. Gier keeps tracking prices meanwhile.",
+    "signIn": "Sign in again",
+    "errors": {
+      "offline": "You are offline. Gier will try again when the connection is back.",
+      "network_error": "Gier cannot be reached right now. Try again in a moment.",
+      "unexpected_response": "Gier sent an unexpected answer. Try again, or reload the app.",
+      "internal_error": "Something went wrong on the server."
+    }
   },
   "reason": {
     "no_key": "No Anthropic key configured",

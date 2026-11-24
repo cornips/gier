@@ -110,6 +110,20 @@ export function createApp(ctx: Ctx) {
     return c.json({ error: 'internal_error', message: err.message }, 500);
   });
 
+  /**
+   * Re-login entry point. The app sends the browser here when its session ended. With a proxy such as
+   * Cloudflare Access in front, this top-level navigation goes through its login first; once the
+   * request arrives here the user is signed in again and goes back to where they were.
+   */
+  api.get('/login', (c) => {
+    const home = `${base}/`;
+    const next = c.req.query('next') ?? home;
+    const safe =
+      next.startsWith(home) && !next.startsWith('//') && !next.includes('\\') ? next : home;
+    c.header('cache-control', 'no-store');
+    return c.redirect(safe, 302);
+  });
+
   api.get('/health', (c) =>
     c.json({
       ok: true,
