@@ -48,8 +48,10 @@ pnpm wrangler secret put REGISTRATION_TOKEN        # openssl rand -hex 24; hand 
 pnpm wrangler secret put NOTION_TOKEN              # optional, for /feedback
 
 pnpm run deploy                               # `pnpm deploy` is a pnpm command; use `run`
-TELEGRAM_BOT_TOKEN=… TELEGRAM_WEBHOOK_SECRET=… RELAY_URL=https://gier-relay.<you>.workers.dev \
-  node scripts/setup-bot.mjs
+# Point the bot at the relay; read -s keeps the secrets out of your shell history (zsh syntax)
+read -s "TELEGRAM_BOT_TOKEN?Bot token: " && export TELEGRAM_BOT_TOKEN && echo
+read -s "TELEGRAM_WEBHOOK_SECRET?Webhook secret: " && export TELEGRAM_WEBHOOK_SECRET && echo
+RELAY_URL=https://gier-relay.<you>.workers.dev node scripts/setup-bot.mjs
 ```
 
 Keep `DATA_KEY` safe: without it the stored chat ids cannot be read, and every user has to link again.

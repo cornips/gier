@@ -10,6 +10,8 @@ name = "gier-relay"
 main = "src/index.ts"
 compatibility_date = "2026-11-01"
 workers_dev = true
+# No public version URLs: they would run old versions against the same D1 and secrets.
+preview_urls = false
 
 [vars]
 BOT_USERNAME = "your_bot_username"

@@ -1,9 +1,12 @@
 // Points the bot at the relay and sets its commands and privacy settings (ADR-016).
 // Run once after deploying, and again after changing the webhook secret or the bot token:
 //
-//   TELEGRAM_BOT_TOKEN=… TELEGRAM_WEBHOOK_SECRET=… RELAY_URL=https://… node scripts/setup-bot.mjs
+//   read -s "TELEGRAM_BOT_TOKEN?Bot token: " && export TELEGRAM_BOT_TOKEN && echo
+//   read -s "TELEGRAM_WEBHOOK_SECRET?Webhook secret: " && export TELEGRAM_WEBHOOK_SECRET && echo
+//   RELAY_URL=https://gier-relay.<you>.workers.dev node scripts/setup-bot.mjs
 //
-// Values come from the environment only, so they do not end up in your shell history files.
+// The script only reads the environment; `read -s` (zsh syntax) keeps the secrets out of your shell
+// history. In bash use: read -s -p "Bot token: " TELEGRAM_BOT_TOKEN
 const {
   TELEGRAM_BOT_TOKEN: token,
   TELEGRAM_WEBHOOK_SECRET: secret,
