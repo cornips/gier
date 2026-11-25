@@ -74,7 +74,7 @@ export default function NotificationsPage() {
             <span className={cn('truncate', !n.readAt && 'font-semibold')}>{n.title}</span>
             <span className="shrink-0 text-xs text-muted-foreground">{relative(n.createdAt)}</span>
           </span>
-          <span className="line-clamp-2 text-sm text-muted-foreground">{n.body}</span>
+          <span className="line-clamp-2 text-sm wrap-anywhere text-muted-foreground">{n.body}</span>
           {n.deliveredVia?.length ? (
             <span className="mt-1 block text-[11px] text-muted-foreground">
               via {n.deliveredVia.join(', ')}
@@ -108,7 +108,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="mx-auto grid max-w-2xl gap-6">
+    <div className="mx-auto grid max-w-2xl grid-cols-1 gap-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <h1 className="font-display text-3xl font-extrabold tracking-tight">
           {t('notifications.title')}
@@ -154,7 +154,7 @@ export default function NotificationsPage() {
                 <h2 id={`h-${g}`} className="mb-1 text-sm font-medium text-muted-foreground">
                   {t(`notifications.${g}`)}
                 </h2>
-                <ul className="grid">{groups[g].map(row)}</ul>
+                <ul className="grid grid-cols-1">{groups[g].map(row)}</ul>
               </section>
             ),
         )
