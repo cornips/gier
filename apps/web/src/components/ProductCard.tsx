@@ -28,28 +28,28 @@ export function ProductCard({ p }: { p: ProductSummary }) {
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="line-clamp-2 leading-snug font-semibold">{p.name}</h3>
-          <p className="mt-0.5 text-xs text-muted-foreground">
+          <h3 className="line-clamp-2 leading-snug font-semibold wrap-break-word">{p.name}</h3>
+          <p className="mt-0.5 text-xs wrap-break-word text-muted-foreground">
             {[p.brand, t('overview.stores', { count: p.storesCount })].filter(Boolean).join(' · ')}
           </p>
         </div>
-        <LabelBadge label={p.label} />
       </div>
       <div className="flex items-end justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs text-muted-foreground">{t('overview.lowestNow')}</p>
           <p className="font-display text-3xl leading-none font-extrabold tabular">
             {euro(p.lowestCents)}
           </p>
           {p.lowestStore && (
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs wrap-break-word text-muted-foreground">
               {t('overview.at', { store: p.lowestStore })}
             </p>
           )}
         </div>
-        <Sparkline values={p.sparkline} className="max-w-32" />
+        <Sparkline values={p.sparkline} className="max-w-32 min-w-12 shrink" />
       </div>
       <div className="flex flex-wrap items-center gap-2">
+        <LabelBadge label={p.label} />
         <Delta value={p.deltaPct} />
         <FakeBadge count={p.fakeDiscounts} />
       </div>

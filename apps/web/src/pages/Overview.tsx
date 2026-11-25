@@ -141,7 +141,7 @@ export function OverviewPage() {
       )}
 
       {products.isPending ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 6 }, (_, i) => (
             <Skeleton key={i} className="h-52 rounded-2xl" />
           ))}
@@ -156,9 +156,9 @@ export function OverviewPage() {
           }
         />
       ) : (
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {list.map((p) => (
-            <li key={p.id} className="grid">
+            <li key={p.id} className="grid grid-cols-1">
               <ProductCard p={p} />
             </li>
           ))}
