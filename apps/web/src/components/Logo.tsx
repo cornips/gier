@@ -18,7 +18,8 @@ export function LogoMark({ className, title = 'Gier' }: { className?: string; ti
         stroke="#16161A"
         strokeWidth="24"
         strokeLinecap="round"
-        strokeDasharray="38 50"
+        strokeDasharray="37 48.87"
+        strokeDashoffset="18.5"
       />
       <path
         d="M154 248c38-38 64-38 102 13 38-51 64-51 102-13"

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="t">
   <title id="t">Gier</title>
   <rect width="512" height="512" rx="128" fill="#C8F169"/>
-  <circle cx="256" cy="256" r="164" fill="none" stroke="#16161A" stroke-width="24" stroke-linecap="round" stroke-dasharray="38 50"/>
+  <circle cx="256" cy="256" r="164" fill="none" stroke="#16161A" stroke-width="24" stroke-linecap="round" stroke-dasharray="37 48.87" stroke-dashoffset="18.5"/>
   <path d="M154 248c38-38 64-38 102 13 38-51 64-51 102-13" fill="none" stroke="#16161A" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

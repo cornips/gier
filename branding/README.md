@@ -28,3 +28,8 @@ Drops and rises also differ in lightness and always carry an arrow, never colour
 ## Name
 
 _Gier_ is Dutch for vulture, and _gierig_ means stingy. A vulture circles patiently and strikes at the right moment.
+
+## Orbit
+
+The dashed orbit has exactly 12 dashes: dash + gap equals the circumference / 12, offset by half a dash so a dash sits at
+3, 6, 9 and 12 o'clock. Change the radius and you must recompute both, or the last dash overlaps the first.

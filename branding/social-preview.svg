@@ -2,7 +2,7 @@
   <rect width="1280" height="640" fill="#F5F2EA"/>
   <g transform="translate(96 64)">
     <rect width="168" height="168" rx="44" fill="#C8F169"/>
-    <circle cx="84" cy="84" r="54" fill="none" stroke="#16161A" stroke-width="8" stroke-linecap="round" stroke-dasharray="12.5 16.5"/>
+    <circle cx="84" cy="84" r="54" fill="none" stroke="#16161A" stroke-width="8" stroke-linecap="round" stroke-dasharray="12.2 16.074" stroke-dashoffset="6.1"/>
     <path d="M50.5 81.4c12.5-12.5 21-12.5 33.5 4.3 12.5-16.8 21-16.8 33.5-4.3" fill="none" stroke="#16161A" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
   <text x="96" y="404" font-family="Bricolage Grotesque" font-weight="800" font-size="200" letter-spacing="-8" fill="#16161A">gier</text>
