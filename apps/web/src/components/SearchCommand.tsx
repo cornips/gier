@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState, type RefObject } from 'react';
 import { useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -24,13 +24,45 @@ function useDebounced<T>(value: T, ms: number) {
   return v;
 }
 
+const DESKTOP = '(min-width: 48rem)';
+const MIN_WIDTH = 448;
+
+/**
+ * On desktop the panel opens exactly over the visible search bar, so suggestions hang right
+ * below it; without one (other screens, ⌘K) it sits top-centre. Phones get a full screen with the
+ * field at the top, clear of the keyboard.
+ */
+function placeOver(anchor: RefObject<HTMLElement | null> | undefined) {
+  return (panel: HTMLDivElement | null) => {
+    if (!panel) return;
+    const place = () => {
+      const rect = anchor?.current?.getBoundingClientRect();
+      const vars = ['--search-top', '--search-left', '--search-width', '--search-shift'];
+      if (!window.matchMedia(DESKTOP).matches || !rect?.width) {
+        vars.forEach((v) => panel.style.removeProperty(v));
+        return;
+      }
+      panel.style.setProperty('--search-top', `${rect.top}px`);
+      panel.style.setProperty('--search-left', `${rect.left}px`);
+      panel.style.setProperty('--search-width', `${Math.max(rect.width, MIN_WIDTH)}px`);
+      panel.style.setProperty('--search-shift', '0px');
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  };
+}
+
 /** One entry point (ADR-004): search tracked products, start tracking a name/EAN, or paste a URL. */
 export function SearchCommand({
   open,
   onOpenChange,
+  anchor,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
+  /** The search bar the panel should open over, when it is on screen. */
+  anchor?: RefObject<HTMLElement | null>;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -47,6 +79,8 @@ export function SearchCommand({
     if (!open) setQ('');
   }, [open]);
 
+  const contentRef = useMemo(() => placeOver(anchor), [anchor]);
+
   const go = (to: string, state?: unknown) => {
     onOpenChange(false);
     void navigate(to, { state });
@@ -59,9 +93,23 @@ export function SearchCommand({
       title={t('search.placeholder')}
       description={t('search.followHint')}
       shouldFilter={false}
+      contentRef={contentRef}
+      className={cn(
+        // Phone: full screen, field on top.
+        'inset-0 flex h-dvh max-w-none translate-x-0 translate-y-0 flex-col gap-0 rounded-none border-0 pt-[env(safe-area-inset-top)] data-[state=closed]:zoom-out-100 data-[state=open]:zoom-in-100 sm:max-w-none',
+        '[&>[data-slot=dialog-close]]:top-[calc(env(safe-area-inset-top)+1rem)] **:data-[slot=command-input-wrapper]:pr-10',
+        // Desktop: over the search bar (see placeOver), suggestions directly below.
+        'md:inset-auto md:top-[var(--search-top,1rem)] md:left-[var(--search-left,50%)] md:h-auto md:w-[var(--search-width,36rem)] md:max-w-[calc(100%-2rem)] md:translate-x-[var(--search-shift,-50%)] md:rounded-2xl md:border md:pt-0 md:[&>[data-slot=dialog-close]]:top-4',
+      )}
     >
-      <CommandInput value={q} onValueChange={setQ} placeholder={t('search.placeholder')} />
-      <CommandList>
+      <CommandInput
+        value={q}
+        onValueChange={setQ}
+        placeholder={t('search.placeholder')}
+        // 16px stops iOS from zooming in on focus.
+        className="text-base md:text-sm"
+      />
+      <CommandList className="max-h-none flex-1 md:max-h-[min(60vh,26rem)] md:flex-none">
         {query.length < 2 && <CommandEmpty>{t('search.empty')}</CommandEmpty>}
         {!!followed.data?.followed.length && (
           <CommandGroup heading={t('search.followed')}>
@@ -102,11 +150,20 @@ export function SearchCommand({
   );
 }
 
-export function SearchTrigger({ onClick, className }: { onClick: () => void; className?: string }) {
+export function SearchTrigger({
+  onClick,
+  className,
+  ref,
+}: {
+  onClick: () => void;
+  className?: string;
+  ref?: React.Ref<HTMLButtonElement>;
+}) {
   const { t } = useTranslation();
   const mac = typeof navigator !== 'undefined' && /mac|iphone|ipad/i.test(navigator.userAgent);
   return (
     <button
+      ref={ref}
       type="button"
       onClick={onClick}
       className={cn(

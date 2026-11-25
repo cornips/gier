@@ -33,6 +33,7 @@ function CommandDialog({
   className,
   showCloseButton = true,
   shouldFilter,
+  contentRef,
   ...props
 }: React.ComponentProps<typeof Dialog> & {
   title?: string;
@@ -40,6 +41,7 @@ function CommandDialog({
   className?: string;
   showCloseButton?: boolean;
   shouldFilter?: boolean;
+  contentRef?: React.Ref<HTMLDivElement>;
 }) {
   return (
     <Dialog {...props}>
@@ -48,6 +50,7 @@ function CommandDialog({
         <DialogDescription>{description}</DialogDescription>
       </DialogHeader>
       <DialogContent
+        ref={contentRef}
         className={cn('overflow-hidden p-0', className)}
         showCloseButton={showCloseButton}
       >

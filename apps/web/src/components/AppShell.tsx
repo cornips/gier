@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -24,6 +24,7 @@ export function AppShell() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const searchBar = useRef<HTMLButtonElement>(null);
   const openFeedback = () => {
     setMenuOpen(false);
     setFeedbackOpen(true);
@@ -93,6 +94,7 @@ export function AppShell() {
           </Link>
           {showSearch && (
             <SearchTrigger
+              ref={searchBar}
               onClick={() => setSearchOpen(true)}
               className="mx-auto hidden max-w-xl md:flex"
             />
@@ -182,7 +184,7 @@ export function AppShell() {
         </div>
       )}
 
-      <SearchCommand open={searchOpen} onOpenChange={setSearchOpen} />
+      <SearchCommand open={searchOpen} onOpenChange={setSearchOpen} anchor={searchBar} />
       <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />
     </div>
   );
