@@ -1,6 +1,7 @@
 import { and, desc, eq } from 'drizzle-orm';
 import {
   bestPromotion,
+  usablePromotions,
   defaultExclusions,
   detectShopFacts,
   domainOf,
@@ -439,8 +440,11 @@ export async function runDiscovery(
       reasons.push('possible_multipack');
     }
     const hasCard = Boolean(store?.rules?.loyaltyCard);
-    const promo = bestPromotion(m.offer!.promotions, regular, hasCard);
-    const card = hasCard ? null : bestPromotion(m.offer!.promotions, regular, true);
+    const promotions = usablePromotions(m.offer!.promotions, {
+      marketplace: store?.category === 'marketplace',
+    });
+    const promo = bestPromotion(promotions, regular, hasCard);
+    const card = hasCard ? null : bestPromotion(promotions, regular, true);
     const cardBetter =
       card && card.promotion.requires === 'card' && card.unitCents < (promo?.unitCents ?? regular);
     candidates.push({

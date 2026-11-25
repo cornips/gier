@@ -425,7 +425,16 @@
   },
   "promo": {
     "each": "→ {{price}} each when you buy {{count}}",
-    "withCard": "With loyalty card: {{deal}} → {{price}} each"
+    "withCardPrefix": "With loyalty card:",
+    "where": "Where did Gier find {{deal}}?",
+    "whereTitle": "Where Gier found this deal",
+    "fromSelector": "In the promotion field of the product page at {{store}}.",
+    "fromPage": "In the text of the product page at {{store}}. Gier looks for promotion labels near the product, which can include deals for other items or sellers.",
+    "check": "Check at {{store}}",
+    "wrong": "This deal doesn't apply",
+    "wrongHint": "Gier will ignore this deal for this store from now on, also in the price history.",
+    "dismissed": "Gier ignores “{{deal}}” for this store.",
+    "undo": "Undo"
   },
   "feedback": {
     "open": "Send feedback",

@@ -140,6 +140,12 @@ export const api = {
   ) => request<AlertRule[]>(`/products/${id}/alerts`, { method: 'PUT', json: rules }),
   setListingActive: (id: number, active: boolean) =>
     request<{ ok: true }>(`/listings/${id}`, { method: 'PATCH', json: { active } }),
+  /** Marks a deal Gier read for this listing as wrong (or undoes that); see promotionKey(). */
+  dismissPromotion: (id: number, key: string, dismissed = true) =>
+    request<{ ok: true }>(`/listings/${id}`, {
+      method: 'PATCH',
+      json: dismissed ? { dismissPromotion: key } : { restorePromotion: key },
+    }),
   exportUrl: (id: number) => `${API}/products/${id}/export.csv`,
   search: (q: string) =>
     request<{ followed: { id: number; name: string }[] }>(`/search?q=${encodeURIComponent(q)}`),

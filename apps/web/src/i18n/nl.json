@@ -425,7 +425,16 @@
   },
   "promo": {
     "each": "→ {{price}} per stuk bij {{count}} stuks",
-    "withCard": "Met klantenkaart: {{deal}} → {{price}} per stuk"
+    "withCardPrefix": "Met klantenkaart:",
+    "where": "Waar vond Gier {{deal}}?",
+    "whereTitle": "Waar Gier deze actie vond",
+    "fromSelector": "In het actievak van de productpagina bij {{store}}.",
+    "fromPage": "In de tekst van de productpagina bij {{store}}. Gier zoekt actielabels rond het product, en daar kunnen ook acties van andere artikelen of verkopers tussen staan.",
+    "check": "Controleer bij {{store}}",
+    "wrong": "Deze actie klopt niet",
+    "wrongHint": "Gier negeert deze actie voortaan voor deze winkel, ook in de prijsgeschiedenis.",
+    "dismissed": "Gier negeert “{{deal}}” voor deze winkel.",
+    "undo": "Ongedaan maken"
   },
   "feedback": {
     "open": "Verstuur feedback",

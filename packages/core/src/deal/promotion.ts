@@ -18,6 +18,32 @@ export interface Promotion {
   bundleCents?: Cents;
   /** 'card': only with the shop's loyalty card, club or app. */
   requires: 'none' | 'card';
+  /**
+   * Where Gier read it: 'selector' from the store's own promotion selector, 'page' from scanning the
+   * page for promotion-like elements. Missing on promotions read before this was recorded.
+   */
+  source?: 'selector' | 'page';
+  /** The text around it on the page (trimmed), so the user can see where it came from. */
+  context?: string;
+}
+
+/** Identifies a deal regardless of wording or where it was read; used to dedupe and dismiss. */
+export const promotionKey = (p: Promotion) =>
+  `${p.kind}:${p.quantity}:${p.paid ?? ''}:${p.pct ?? ''}:${p.bundleCents ?? ''}:${p.requires}`;
+
+/**
+ * The promotions Gier may count for a listing. On marketplaces (bol, Amazon) a product page also shows
+ * deals of other sellers and campaign teasers, so a page scan cannot tell which deal applies: only
+ * promotions from a store selector count there. Deals the user marked as wrong never count.
+ */
+export function usablePromotions(
+  promotions: Promotion[] | null | undefined,
+  { marketplace, dismissed }: { marketplace: boolean; dismissed?: string[] | null },
+): Promotion[] | null {
+  const usable = (promotions ?? []).filter(
+    (p) => !(marketplace && p.source !== 'selector') && !dismissed?.includes(promotionKey(p)),
+  );
+  return usable.length ? usable : null;
 }
 
 const CARD_RE =

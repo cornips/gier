@@ -106,6 +106,7 @@ export function ListingRow({
         unitCents={l.unitPriceCents}
         card={l.cardPromotion?.promotion}
         cardUnitCents={l.cardPromotion?.unitCents}
+        source={{ listingId: l.id, url: l.url, storeName: l.storeName }}
       />
       {(warnings.length > 0 || info.length > 0) && (
         <ul className="grid gap-1">

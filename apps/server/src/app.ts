@@ -482,8 +482,28 @@ export function createApp(ctx: Ctx) {
   api.patch('/listings/:id', async (c) => {
     const id = idParam(c.req.param('id'));
     if (!id) return c.json({ error: 'not_found' }, 404);
-    const { active } = z.object({ active: z.boolean() }).parse(await c.req.json());
-    ctx.db.update(listings).set({ active }).where(eq(listings.id, id)).run();
+    const promotionKey = z.string().regex(/^[a-z_]+:\d+:\d*:\d*:\d*:(none|card)$/);
+    const body = z
+      .object({
+        active: z.boolean().optional(),
+        /** A deal Gier read wrongly for this listing (promotionKey); it is ignored from now on. */
+        dismissPromotion: promotionKey.optional(),
+        restorePromotion: promotionKey.optional(),
+      })
+      .parse(await c.req.json());
+    const listing = ctx.db.select().from(listings).where(eq(listings.id, id)).get();
+    if (!listing) return c.json({ error: 'not_found' }, 404);
+    const dismissed = new Set(listing.dismissedPromotions ?? []);
+    if (body.dismissPromotion) dismissed.add(body.dismissPromotion);
+    if (body.restorePromotion) dismissed.delete(body.restorePromotion);
+    ctx.db
+      .update(listings)
+      .set({
+        active: body.active ?? listing.active,
+        dismissedPromotions: dismissed.size ? [...dismissed] : null,
+      })
+      .where(eq(listings.id, id))
+      .run();
     return c.json({ ok: true });
   });
 

@@ -1,6 +1,6 @@
 import { load, type CheerioAPI } from 'cheerio';
 import { parsePrice, type Cents } from '../money';
-import { parsePromotion, type Promotion } from '../deal/promotion';
+import { parsePromotion, promotionKey, type Promotion } from '../deal/promotion';
 import type { Availability, ExtractedOffer, ReferenceType, SelectorConfig } from './types';
 
 type Json = Record<string, unknown>;
@@ -293,6 +293,11 @@ const PROMO_SELECTOR = [
   '[data-promotion]',
 ].join(',');
 
+const clip = (text: string, max: number) => {
+  const t = text.replace(/\s+/g, ' ').trim();
+  return t.length > max ? `${t.slice(0, max - 1)}…` : t;
+};
+
 /**
  * Multi-buy promotions for the product on this page. Store selectors win; otherwise promotion-like
  * elements outside recommendation blocks and page chrome. Deduplicated, at most four.
@@ -300,13 +305,13 @@ const PROMO_SELECTOR = [
 function fromPromotions($: CheerioAPI, selector?: string): Promotion[] {
   const found: Promotion[] = [];
   const seen = new Set<string>();
-  const consider = (text: string) => {
+  const consider = (text: string, context: string) => {
     const p = parsePromotion(text);
     if (!p) return;
-    const key = `${p.kind}:${p.quantity}:${p.paid ?? ''}:${p.pct ?? ''}:${p.bundleCents ?? ''}:${p.requires}`;
+    const key = promotionKey(p);
     if (seen.has(key)) return;
     seen.add(key);
-    found.push(p);
+    found.push({ ...p, source: selector ? 'selector' : 'page', context: clip(context, 160) });
   };
   const els = $(selector || PROMO_SELECTOR);
   els.each((_, el) => {
@@ -321,7 +326,7 @@ function fromPromotions($: CheerioAPI, selector?: string): Promotion[] {
       // Leaf-ish elements only: a whole section matching "promo" would mix several texts.
       if (node.children().length > 6) return;
     }
-    consider(node.text());
+    consider(node.text(), node.parent().text() || node.text());
     return;
   });
   return found;

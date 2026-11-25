@@ -10,6 +10,7 @@ import {
   productVerdict,
   runChecks,
   unitPrice,
+  usablePromotions,
   type Finding,
   type PricePoint,
   type Promotion,
@@ -95,13 +96,19 @@ export function loadSeries(ctx: Ctx, product: Product): ListingSeries[] {
     .where(and(eq(listings.productId, product.id), eq(listings.active, true)))
     .all();
   return rows.map(({ listing, store }) => {
+    const filter = {
+      marketplace: store.category === 'marketplace',
+      dismissed: listing.dismissedPromotions,
+    };
     const points = ctx.db
       .select()
       .from(pricePoints)
       .where(eq(pricePoints.listingId, listing.id))
       .orderBy(asc(pricePoints.observedAt))
       .all()
-      .map(toPricePoint);
+      .map(toPricePoint)
+      // Applied to history too, so a wrong deal also leaves past lows and verdicts.
+      .map((p) => ({ ...p, promotions: usablePromotions(p.promotions, filter) }));
     return {
       product,
       listing,

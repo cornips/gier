@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { bestPromotion, combineQuantity, parsePromotion, parseQuantity } from '../src/browser';
+import {
+  bestPromotion,
+  combineQuantity,
+  parsePromotion,
+  parseQuantity,
+  promotionKey,
+  usablePromotions,
+} from '../src/browser';
+import { extractOffer } from '../src/extract/extract';
 import { storeCategoriesFor } from '../src/stores/registry';
 
 describe('multipacks', () => {
@@ -64,5 +72,39 @@ describe('store relevance', () => {
     expect(storeCategoriesFor('perfume')).toContain('perfumery');
     expect(storeCategoriesFor('television')).toContain('electronics');
     expect(storeCategoriesFor(null)).toBeNull();
+  });
+});
+
+describe('where a promotion came from', () => {
+  const page = (promo: string) =>
+    `<script type="application/ld+json">{"@type":"Product","name":"Deo","offers":{"price":"3.99","priceCurrency":"EUR"}}</script>
+     <div class="buy-block"><span class="promo-label">${promo}</span> bij 3 stuks</div>`;
+
+  it('records the source and the text around it', () => {
+    const [scanned] = extractOffer(page('2 + 1 gratis'), 'https://shop.nl/p').promotions;
+    expect(scanned).toMatchObject({
+      kind: 'buy_get',
+      source: 'page',
+      context: '2 + 1 gratis bij 3 stuks',
+    });
+    const [selected] = extractOffer(page('1+1 gratis'), 'https://shop.nl/p', {
+      promotion: '.promo-label',
+    }).promotions;
+    expect(selected).toMatchObject({ source: 'selector' });
+  });
+
+  it('counts only selector promotions on marketplaces, and never dismissed ones', () => {
+    const scanned = parsePromotion('2 + 1 gratis')!;
+    const selected = { ...parsePromotion('1+1 gratis')!, source: 'selector' as const };
+    const legacy = parsePromotion('3 + 1 gratis')!;
+    const both = [{ ...scanned, source: 'page' as const }, selected, legacy];
+    expect(usablePromotions(both, { marketplace: false })).toHaveLength(3);
+    expect(usablePromotions(both, { marketplace: true })).toEqual([selected]);
+    expect(
+      usablePromotions(both, { marketplace: false, dismissed: [promotionKey(legacy)] }),
+    ).toHaveLength(2);
+    expect(
+      usablePromotions([selected], { marketplace: true, dismissed: [promotionKey(selected)] }),
+    ).toBeNull();
   });
 });

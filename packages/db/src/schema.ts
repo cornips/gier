@@ -77,6 +77,8 @@ export const listings = sqliteTable(
     url: text('url').notNull(),
     title: text('title'),
     packCount: integer('pack_count').notNull().default(1),
+    /** promotionKey()s of deals the user marked as wrong for this listing; Gier ignores them. */
+    dismissedPromotions: text('dismissed_promotions', { mode: 'json' }).$type<string[]>(),
     active: integer('active', { mode: 'boolean' }).notNull().default(true),
     followedAutomatically: integer('followed_automatically', { mode: 'boolean' })
       .notNull()

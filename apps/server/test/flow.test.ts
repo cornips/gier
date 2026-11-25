@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
-import { fingerprintFromTitle, type Fingerprint } from '@gier/core';
+import { fingerprintFromTitle, promotionKey, type Fingerprint } from '@gier/core';
 import { alerts, listings, notifications, pricePoints, products, stores } from '@gier/db';
 import { createApp } from '../src/app';
 import { setLanguage, translator } from '../src/i18n';
@@ -156,6 +156,68 @@ describe('discovery → follow → check → alert', () => {
       .all();
     const outcome = await checkListing(ctx, listing!);
     expect(outcome).toMatchObject({ status: 'skipped', error: 'seller:Koptelefoonshop BV' });
+  });
+
+  it('ignores deals found by scanning a marketplace page, and deals the user marks as wrong', async () => {
+    const promo = '<div class="buy-block"><span class="promo-label">2 + 1 gratis</span></div>';
+    const ctx = makeCtx({
+      'https://www.bol.com/nl/p/2': productPage({
+        name: 'Rexona deo',
+        price: 6,
+        seller: 'bol',
+        extra: promo,
+      }),
+      'https://www.kruidvat.nl/p/2': productPage({ name: 'Rexona deo', price: 6, extra: promo }),
+    });
+    const app = createApp(ctx);
+    const storeId = (domain: string) =>
+      ctx.db.select().from(stores).where(eq(stores.domain, domain)).get()!.id;
+    ctx.db
+      .update(stores)
+      .set({ rules: { soldByOnly: 'bol' } })
+      .where(eq(stores.id, storeId('bol.com')))
+      .run();
+    const [product] = ctx.db
+      .insert(products)
+      .values({ name: 'Rexona deo', fingerprint: fingerprintFromTitle('Rexona deo', 'Rexona') })
+      .returning()
+      .all();
+    const added = ctx.db
+      .insert(listings)
+      .values([
+        { productId: product!.id, storeId: storeId('bol.com'), url: 'https://www.bol.com/nl/p/2' },
+        {
+          productId: product!.id,
+          storeId: storeId('kruidvat.nl'),
+          url: 'https://www.kruidvat.nl/p/2',
+        },
+      ])
+      .returning()
+      .all();
+    for (const l of added) await checkListing(ctx, l);
+
+    const promotionAt = (domain: string) =>
+      productDetail(ctx, product!.id)!.listings.find((l) => l.url.includes(domain))!;
+    // bol: the page also shows other sellers' and campaign deals, so a scanned deal never counts.
+    expect(promotionAt('bol.com')).toMatchObject({ promotion: null, unitPriceCents: 600 });
+    const kv = promotionAt('kruidvat.nl');
+    expect(kv).toMatchObject({ unitPriceCents: 400 });
+    expect(kv.promotion).toMatchObject({ text: '2 + 1 gratis', source: 'page' });
+
+    // "This deal doesn't apply": gone now and in the history; undo brings it back.
+    const patch = (body: object) =>
+      app.request(`/gier/api/listings/${kv.id}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    const key = promotionKey(kv.promotion!);
+    expect((await patch({ dismissPromotion: key })).status).toBe(200);
+    expect(promotionAt('kruidvat.nl')).toMatchObject({ promotion: null, unitPriceCents: 600 });
+    expect(productDetail(ctx, product!.id)!.lowestCents).toBe(600);
+    await patch({ restorePromotion: key });
+    expect(promotionAt('kruidvat.nl').unitPriceCents).toBe(400);
+    expect((await patch({ dismissPromotion: 'nonsense' })).status).toBe(400);
   });
 });
 
