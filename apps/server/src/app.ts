@@ -37,6 +37,7 @@ import {
   browserRunAvailable,
   BrowserRunError,
   cancelHandoff,
+  completeHandoff,
   getHandoff,
   startLoginHandoff,
   typeIntoHandoff,
@@ -705,6 +706,12 @@ export function createApp(ctx: Ctx) {
       .parse(await c.req.json());
     const ok = await typeIntoHandoff(c.req.param('id'), body);
     return ok ? c.json({ ok: true }) : c.json({ error: 'not_found' }, 404);
+  });
+
+  // The user is logged in in the remote browser: keep the session (ADR-014).
+  api.post('/handoffs/:id/done', async (c) => {
+    const h = await completeHandoff(c.req.param('id'));
+    return h ? c.json(h) : c.json({ error: 'not_found' }, 404);
   });
 
   api.delete('/handoffs/:id', async (c) =>

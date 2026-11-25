@@ -164,6 +164,7 @@ export const api = {
   handoff: (id: string) => request<Handoff>(`/handoffs/${id}`),
   handoffInput: (id: string, input: { text?: string; key?: 'Enter' | 'Tab' | 'Backspace' }) =>
     request<{ ok: true }>(`/handoffs/${id}/input`, { method: 'POST', json: input }),
+  completeHandoff: (id: string) => request<Handoff>(`/handoffs/${id}/done`, { method: 'POST' }),
   cancelHandoff: (id: string) =>
     request<{ ok: true }>(`/handoffs/${id}`, { method: 'DELETE' }).catch(() => undefined),
   notifications: () => request<NotificationRow[]>('/notifications'),

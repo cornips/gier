@@ -2,7 +2,6 @@ import { eq } from 'drizzle-orm';
 import { stores } from '@gier/db';
 import type { Ctx } from '../context';
 import { encrypt } from '../lib/crypto';
-import { translator } from '../i18n';
 
 /**
  * Cloudflare Browser Run (formerly Browser Rendering), used for JavaScript-only shop pages and for the
@@ -110,6 +109,8 @@ type Page = import('playwright-core').Page;
 interface Session {
   handoff: LoginHandoff;
   page: Page;
+  /** Stores the remote browser's cookies as the store's session. */
+  save: () => Promise<void>;
   close: () => Promise<void>;
 }
 
@@ -142,9 +143,30 @@ export async function typeIntoHandoff(
 }
 
 /**
- * Starts a remote browser on the store's login page and returns a Live View URL for the user. When the
- * user finishes (Cloudflare.handoffComplete), the cookies are encrypted and stored. An earlier handoff
- * for the same store is closed first, so abandoned attempts do not use up the Browser Run limits.
+ * The user says they are logged in: keep the remote browser's cookies (encrypted) as the store's
+ * session and close the browser. Gier's own login window asks for this, not Browser Run's handoff
+ * panel, which would cover the shop's page inside Live View.
+ */
+export async function completeHandoff(id: string) {
+  const s = sessions.get(id);
+  if (!s || s.handoff.status !== 'waiting') return s?.handoff ?? null;
+  try {
+    await s.save();
+    s.handoff.status = 'done';
+  } catch (e) {
+    s.handoff.status = 'failed';
+    s.handoff.error = e instanceof Error ? e.message : String(e);
+  } finally {
+    await s.close();
+  }
+  return s.handoff;
+}
+
+/**
+ * Starts a remote browser on the store's login page and returns a Live View URL for the user, who
+ * logs in there and then confirms in Gier (completeHandoff). Unconfirmed handoffs expire after
+ * HANDOFF_MS. An earlier handoff for the same store is closed first, so abandoned attempts do not use
+ * up the Browser Run limits.
  */
 export async function startLoginHandoff(
   ctx: Ctx,
@@ -174,9 +196,15 @@ export async function startLoginHandoff(
     throw classifyBrowserRunError(e);
   }
   let closed = false;
+  const expiry = setTimeout(() => {
+    if (handoff.status === 'waiting') handoff.status = 'expired';
+    void close();
+  }, HANDOFF_MS);
+  expiry.unref?.();
   const close = async () => {
     if (closed) return;
     closed = true;
+    clearTimeout(expiry);
     await browser.close().catch(() => undefined);
     // Keep the final status around briefly for the polling web app.
     setTimeout(() => sessions.delete(handoff.id), 60_000).unref?.();
@@ -185,53 +213,27 @@ export async function startLoginHandoff(
   try {
     const context = browser.contexts()[0] ?? (await browser.newContext());
     const page = await context.newPage();
-    sessions.set(handoff.id, { handoff, page, close });
+    const save = async () => {
+      const cookies = (await context.cookies()) as StoredCookie[];
+      ctx.db
+        .update(stores)
+        .set({
+          sessionEncrypted: encrypt(JSON.stringify(cookies), ctx.env.GIER_SECRET),
+          sessionUpdatedAt: ctx.now(),
+        })
+        .where(eq(stores.id, storeId))
+        .run();
+    };
+    sessions.set(handoff.id, { handoff, page, save, close });
     await page.goto(loginUrl, { waitUntil: 'domcontentloaded' });
     const cdp = await context.newCDPSession(page);
     // Cloudflare-specific CDP commands are not in Playwright's protocol typings.
-    const send = cdp.send.bind(cdp) as unknown as (
-      method: string,
-      params?: object,
-    ) => Promise<Record<string, unknown>>;
-    const live = await send('Cloudflare.getLiveView', { mode: 'tab', expiresInMs: HANDOFF_MS });
+    const live = (await (cdp.send as unknown as (m: string, p: object) => Promise<object>)(
+      'Cloudflare.getLiveView',
+      // "tab" shows only the page, without DevTools around it.
+      { mode: 'tab', expiresInMs: HANDOFF_MS },
+    )) as { devtoolsFrontendUrl?: string };
     handoff.liveViewUrl = String(live.devtoolsFrontendUrl ?? '');
-
-    const done = new Promise<{ success?: boolean; reason?: string }>((resolve) => {
-      (
-        cdp as unknown as {
-          once: (e: string, cb: (x: { success?: boolean; reason?: string }) => void) => void;
-        }
-      ).once('Cloudflare.handoffComplete', resolve);
-    });
-    await send('Cloudflare.handoff', {
-      instructions: translator(ctx).t('login.instructions'),
-      timeout: HANDOFF_MS,
-    });
-
-    void done
-      .then(async (result) => {
-        if (handoff.status !== 'waiting') return;
-        if (!result.success) {
-          handoff.status = result.reason === 'timeout' ? 'expired' : 'failed';
-          handoff.error = result.reason;
-          return;
-        }
-        const cookies = (await context.cookies()) as StoredCookie[];
-        ctx.db
-          .update(stores)
-          .set({
-            sessionEncrypted: encrypt(JSON.stringify(cookies), ctx.env.GIER_SECRET),
-            sessionUpdatedAt: ctx.now(),
-          })
-          .where(eq(stores.id, storeId))
-          .run();
-        handoff.status = 'done';
-      })
-      .catch((e: unknown) => {
-        handoff.status = 'failed';
-        handoff.error = e instanceof Error ? e.message : String(e);
-      })
-      .finally(() => void close());
   } catch (e) {
     await close();
     throw classifyBrowserRunError(e);

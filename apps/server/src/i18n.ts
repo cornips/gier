@@ -51,7 +51,6 @@ const MESSAGES: Record<Language, Messages> = {
     'push.test.title': 'Gier test',
     'push.test.body': 'Notifications work.',
     'notify.open': 'View',
-    'login.instructions': 'Log in to the shop, then click Done.',
   },
   nl: {
     'alert.below.title': 'Onder doelprijs · {product}',
@@ -85,7 +84,6 @@ const MESSAGES: Record<Language, Messages> = {
     'push.test.title': 'Gier test',
     'push.test.body': 'Meldingen werken.',
     'notify.open': 'Bekijk',
-    'login.instructions': 'Log in bij de winkel en klik daarna op Klaar.',
   },
 };
 

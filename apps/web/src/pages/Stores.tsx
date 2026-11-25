@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
+  Check,
   CornerDownLeft,
   Delete,
   ExternalLink,
@@ -376,6 +377,10 @@ function LoginDialog({ store, onClose }: { store: StoreRow; onClose: () => void 
     enabled: Boolean(start.data?.id),
     refetchInterval: (q) => (q.state.data?.status === 'waiting' || !q.state.data ? 2000 : false),
   });
+  const finish = useMutation({
+    mutationFn: () => api.completeHandoff(start.data!.id),
+    onSuccess: (data) => qc.setQueryData(['handoff', data.id], data),
+  });
   const h = handoff.data ?? start.data;
   const handoffId = useRef<string | null>(null);
   handoffId.current = h?.status === 'waiting' ? h.id : null;
@@ -451,13 +456,11 @@ function LoginDialog({ store, onClose }: { store: StoreRow; onClose: () => void 
               className="h-[55dvh] w-full rounded-lg border bg-white"
             />
             <RemoteKeyboard handoffId={h.id} />
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p
-                className="flex items-center gap-2 text-xs text-muted-foreground"
-                aria-live="polite"
-              >
-                <Loader2 className="size-3.5 animate-spin" aria-hidden /> {t('stores.waitingLogin')}
-              </p>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Button onClick={() => finish.mutate()} disabled={finish.isPending}>
+                {finish.isPending ? <Loader2 className="animate-spin" aria-hidden /> : <Check />}
+                {t('stores.loginFinished')}
+              </Button>
               <a
                 href={h.liveViewUrl}
                 target="_blank"
