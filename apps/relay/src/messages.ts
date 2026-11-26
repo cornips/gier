@@ -52,7 +52,8 @@ export function notificationHtml(n: {
 }) {
   const lines = [`${ICON[n.kind]} <b>${safeText(n.title)}</b>`];
   if (n.body) lines.push(safeText(n.body));
-  lines.push('', `<i>via Gier${n.host ? ` · ${escapeHtml(n.host)}` : ''}</i>`);
+  // The bot already says it is Gier; only name the installation when there is more than one.
+  if (n.host) lines.push('', `<i>${escapeHtml(n.host)}</i>`);
   return lines.join('\n');
 }
 

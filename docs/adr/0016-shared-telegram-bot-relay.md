@@ -53,8 +53,8 @@ holds the token can message every chat that ever started the bot.
 - The relay builds the message: everything escaped, fixed maximum lengths, link-like text and
   @names made harmless, and the _View_ button always points to `base_url` + path. An installation
   cannot send a link to another domain.
-- Every message ends with _via Gier_. When a chat is linked to more than one installation, the
-  address of the installation is added.
+- Messages carry no _via Gier_ footer: the bot itself is Gier. When a chat is linked to more than
+  one installation, the message ends with the address of the installation.
 - Without a subject a notification goes to every link of the installation: all users of an
   installation see the same products. With a subject it goes to that user only. Per-user preferences
   are a later decision.

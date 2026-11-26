@@ -205,7 +205,7 @@ describe('notifications', () => {
     expect(text).not.toContain('bol.com');
     expect(text).not.toContain('https://');
     expect(text).not.toContain('@someone');
-    expect(text).toContain('<i>via Gier</i>');
+    expect(text).not.toContain('via Gier');
     expect(a!.body.reply_markup).toEqual({
       inline_keyboard: [[{ text: 'Bekijk', url: 'https://gier.example.com/gier/p/42' }]],
     });
@@ -251,7 +251,7 @@ describe('notifications', () => {
     const { code } = await other.linkCode();
     await relay.text(ALICE, `/start ${code}`);
     await inst.notify({ kind: 'deal', title: 'x' });
-    expect(relay.last().body.text).toContain('via Gier · gier.example.com/gier');
+    expect(relay.last().body.text).toContain('<i>gier.example.com/gier</i>');
   });
 
   it('enforces the daily limit', async () => {
