@@ -47,7 +47,7 @@ function Feature({ on, label, hint }: { on: boolean; label: string; hint: string
 const SERVICES: { key: keyof Health['features']; label: string }[] = [
   { key: 'searxng', label: 'SearXNG' },
   { key: 'brave', label: 'Brave Search API' },
-  { key: 'ai', label: 'Claude Haiku' },
+  { key: 'ai', label: 'AI (Anthropic)' },
   { key: 'browserRun', label: 'Cloudflare Browser Run' },
 ];
 
