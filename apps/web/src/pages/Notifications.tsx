@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -31,7 +31,17 @@ const ICON = {
 } as const;
 
 export default function NotificationsPage() {
+  return <Notifications />;
+}
+
+/**
+ * The notification list, as a page (direct links from push and Telegram) or in the bell's panel.
+ * `onOpen` runs when a notification leads elsewhere, so the panel can close.
+ */
+export function Notifications({ panel, onOpen }: { panel?: boolean; onOpen?: () => void }) {
   const { t } = useTranslation();
+  const id = useId();
+  const [Heading, Subheading] = panel ? (['h2', 'h3'] as const) : (['h1', 'h2'] as const);
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['notifications'], queryFn: api.notifications });
   const [filter, setFilter] = useState<Filter>('all');
@@ -96,7 +106,10 @@ export default function NotificationsPage() {
           <Link
             to={`/p/${n.productId}`}
             className={cls}
-            onClick={() => !n.readAt && read.mutate([n.id])}
+            onClick={() => {
+              if (!n.readAt) read.mutate([n.id]);
+              onOpen?.();
+            }}
           >
             {body}
           </Link>
@@ -108,11 +121,16 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="mx-auto grid max-w-2xl grid-cols-1 gap-6">
+    <div className={cn('grid grid-cols-1', panel ? 'gap-4' : 'mx-auto max-w-2xl gap-6')}>
       <header className="flex flex-wrap items-end justify-between gap-3">
-        <h1 className="font-display text-3xl font-extrabold tracking-tight">
+        <Heading
+          className={cn(
+            'font-display font-extrabold tracking-tight',
+            panel ? 'text-xl' : 'text-3xl',
+          )}
+        >
           {t('notifications.title')}
-        </h1>
+        </Heading>
         <Button
           variant="outline"
           size="sm"
@@ -150,10 +168,13 @@ export default function NotificationsPage() {
         (['today', 'earlier'] as const).map(
           (g) =>
             groups[g].length > 0 && (
-              <section key={g} aria-labelledby={`h-${g}`}>
-                <h2 id={`h-${g}`} className="mb-1 text-sm font-medium text-muted-foreground">
+              <section key={g} aria-labelledby={`${id}-${g}`}>
+                <Subheading
+                  id={`${id}-${g}`}
+                  className="mb-1 text-sm font-medium text-muted-foreground"
+                >
                   {t(`notifications.${g}`)}
-                </h2>
+                </Subheading>
                 <ul className="grid grid-cols-1">{groups[g].map(row)}</ul>
               </section>
             ),

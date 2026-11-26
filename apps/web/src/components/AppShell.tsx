@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -6,11 +6,14 @@ import { Bell, Coins, Menu, Settings, Store } from 'lucide-react';
 import { AppInfo, FeedbackDialog } from './AppInfo';
 import { ErrorBoundary } from './ErrorBoundary';
 import { InstallBanner } from './InstallBanner';
+import { PageSpinner } from './States';
 import { Wordmark } from './Logo';
 import { SearchCommand, SearchTrigger } from './SearchCommand';
 import { Button } from './ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { api } from '@/lib/api';
+import { useMediaQuery, WIDE } from '@/lib/media';
 import { cn } from '@/lib/utils';
 
 const NAV = [
@@ -19,11 +22,17 @@ const NAV = [
   { to: '/settings', key: 'settings', icon: Settings },
 ] as const;
 
+const Notifications = lazy(() =>
+  import('@/pages/Notifications').then((m) => ({ default: m.Notifications })),
+);
+
 export function AppShell() {
   const { t } = useTranslation();
   const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const wide = useMediaQuery(WIDE);
   const searchBar = useRef<HTMLButtonElement>(null);
   const openFeedback = () => {
     setMenuOpen(false);
@@ -56,20 +65,36 @@ export function AppShell() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
+  // The bell opens the notifications in a panel below it; the same bell closes it again.
   const bell = (
-    <Button asChild variant="ghost" size="icon" className="relative">
-      <Link
-        to="/notifications"
-        aria-label={unread ? `${t('nav.notifications')} (${unread})` : t('nav.notifications')}
+    <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative"
+          aria-label={unread ? `${t('nav.notifications')} (${unread})` : t('nav.notifications')}
+        >
+          <Bell />
+          {unread > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 grid min-w-4 place-items-center rounded-full bg-prey px-1 text-[10px] font-bold text-prey-foreground tabular">
+              {unread > 9 ? '9+' : unread}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        collisionPadding={16}
+        aria-label={t('nav.notifications')}
+        className="max-h-[min(var(--radix-popover-content-available-height),40rem)] w-[min(28rem,calc(100vw-2rem))] overflow-y-auto overscroll-contain rounded-2xl p-4"
       >
-        <Bell />
-        {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 grid min-w-4 place-items-center rounded-full bg-prey px-1 text-[10px] font-bold text-prey-foreground tabular">
-            {unread > 9 ? '9+' : unread}
-          </span>
-        )}
-      </Link>
-    </Button>
+        <Suspense fallback={<PageSpinner />}>
+          <Notifications panel onOpen={() => setNotificationsOpen(false)} />
+        </Suspense>
+      </PopoverContent>
+    </Popover>
   );
 
   return (
@@ -120,10 +145,10 @@ export function AppShell() {
                 <span className="sr-only lg:not-sr-only">{t(`nav.${key}`)}</span>
               </NavLink>
             ))}
-            {bell}
+            {wide && bell}
           </nav>
           <div className="ml-auto flex items-center md:hidden">
-            {bell}
+            {!wide && bell}
             <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" aria-label={t('common.menu')}>
