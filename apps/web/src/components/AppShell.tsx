@@ -96,7 +96,7 @@ export function AppShell() {
             <SearchTrigger
               ref={searchBar}
               onClick={() => setSearchOpen(true)}
-              className="mx-auto hidden max-w-xl md:flex"
+              className="mx-auto hidden min-w-0 max-w-xl md:flex"
             />
           )}
           <nav
@@ -107,15 +107,17 @@ export function AppShell() {
               <NavLink
                 key={to}
                 to={to}
+                title={t(`nav.${key}`)}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground',
+                    'flex items-center gap-2 rounded-md px-2.5 py-2 text-sm font-medium text-muted-foreground transition hover:bg-accent hover:text-foreground lg:px-3',
                     isActive && 'bg-secondary text-foreground',
                   )
                 }
               >
                 <Icon className="size-4" aria-hidden />
-                {t(`nav.${key}`)}
+                {/* Icons only until there is room for the labels next to the search bar. */}
+                <span className="sr-only lg:not-sr-only">{t(`nav.${key}`)}</span>
               </NavLink>
             ))}
             {bell}
