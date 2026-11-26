@@ -106,6 +106,13 @@ export function SearchCommand({
         value={q}
         onValueChange={setQ}
         placeholder={t('search.placeholder')}
+        // Phone: closing the keyboard on an empty field means "never mind", so leave the full
+        // screen. Not when the whole app loses focus (switching apps), nor on desktop.
+        onBlur={() => {
+          if (!q.trim() && document.hasFocus() && !window.matchMedia(DESKTOP).matches) {
+            onOpenChange(false);
+          }
+        }}
         // 16px stops iOS from zooming in on focus.
         className="text-base md:text-sm"
       />
