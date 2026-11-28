@@ -57,6 +57,26 @@ RELAY_URL=https://gier-relay.<you>.workers.dev node scripts/setup-bot.mjs
 Keep `DATA_KEY` safe: without it the stored chat ids cannot be read, and every user has to link again.
 Without `REGISTRATION_TOKEN` registration is closed.
 
+## Deploy from GitHub Actions
+
+`.github/workflows/relay.yml` deploys the relay on every push to `main` that touches `apps/relay/` or
+`packages/relay-protocol/` (or by hand: Actions → Relay → Run workflow). Other changes never trigger a
+deploy. The job typechecks and tests, writes `wrangler.toml` from `wrangler.example.toml`, applies D1
+migrations and deploys. Worker secrets stay in Cloudflare; a deploy does not touch them.
+
+Set these under Settings → Secrets and variables → Actions. Without `RELAY_D1_DATABASE_ID` the job is
+skipped, so forks are not affected.
+
+| Kind     | Name                                | Value                                                                   |
+| -------- | ----------------------------------- | ----------------------------------------------------------------------- |
+| Secret   | `CLOUDFLARE_API_TOKEN`              | API token from the "Edit Cloudflare Workers" template plus **D1: Edit** |
+| Variable | `CLOUDFLARE_ACCOUNT_ID`             | Your Cloudflare account id                                              |
+| Variable | `RELAY_D1_DATABASE_ID`              | `database_id` of the `gier-relay` database                              |
+| Variable | `RELAY_BOT_USERNAME`                | The bot's username, without `@`                                         |
+| Variable | `RELAY_NOTION_FEEDBACK_DATABASE_ID` | Optional: Notion database for `/feedback`                               |
+
+Other `[vars]` (such as `DAILY_NOTIFICATION_LIMIT`) come from `wrangler.example.toml` as committed.
+
 ## Operating
 
 There are no admin commands in the bot. Use D1 directly, for example:

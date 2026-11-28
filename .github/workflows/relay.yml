@@ -1,0 +1,67 @@
+name: Relay
+
+# Deploys gier-relay (apps/relay, ADR-016) to Cloudflare Workers when the relay or the protocol it
+# bundles changes on main. Everything else in the repository never triggers a deploy.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/relay/**'
+      - 'packages/relay-protocol/**'
+      - '.github/workflows/relay.yml'
+      # Docs and the one-off bot setup script are not part of the Worker.
+      - '!apps/relay/**/*.md'
+      - '!apps/relay/scripts/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deploy at a time; a newer push waits instead of cancelling a deploy halfway.
+concurrency:
+  group: relay-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Runs only where a relay is configured (repository variables); forks skip it.
+    if: vars.RELAY_D1_DATABASE_ID != ''
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter "@gier/relay..."
+      - run: pnpm --filter @gier/relay-protocol --filter @gier/relay run typecheck
+      - run: pnpm --filter @gier/relay-protocol --filter @gier/relay run test
+
+      - name: Write wrangler.toml
+        working-directory: apps/relay
+        env:
+          BOT_USERNAME: ${{ vars.RELAY_BOT_USERNAME }}
+          NOTION_DB: ${{ vars.RELAY_NOTION_FEEDBACK_DATABASE_ID }}
+          D1_ID: ${{ vars.RELAY_D1_DATABASE_ID }}
+        run: |
+          # Check the values before they go into the config file.
+          [[ "$BOT_USERNAME" =~ ^[A-Za-z0-9_]{5,32}$ ]] || { echo "::error::RELAY_BOT_USERNAME is missing or invalid"; exit 1; }
+          [[ "$D1_ID" =~ ^[0-9a-f-]{36}$ ]] || { echo "::error::RELAY_D1_DATABASE_ID is not a D1 database id"; exit 1; }
+          [[ -z "$NOTION_DB" || "$NOTION_DB" =~ ^[0-9a-f-]{32,36}$ ]] || { echo "::error::RELAY_NOTION_FEEDBACK_DATABASE_ID is invalid"; exit 1; }
+          [[ -n "$CLOUDFLARE_API_TOKEN" && -n "$CLOUDFLARE_ACCOUNT_ID" ]] || { echo "::error::Set the CLOUDFLARE_API_TOKEN secret and CLOUDFLARE_ACCOUNT_ID variable"; exit 1; }
+          sed -e "s|^BOT_USERNAME = .*|BOT_USERNAME = \"$BOT_USERNAME\"|" \
+              -e "s|^NOTION_FEEDBACK_DATABASE_ID = .*|NOTION_FEEDBACK_DATABASE_ID = \"$NOTION_DB\"|" \
+              -e "s|^database_id = .*|database_id = \"$D1_ID\"|" \
+              wrangler.example.toml > wrangler.toml
+
+      # Idempotent: only applies migrations the database does not have yet.
+      - name: Apply D1 migrations
+        run: pnpm --filter @gier/relay run migrate
+
+      # `run` matters: `pnpm deploy` is a built-in pnpm command.
+      - name: Deploy Worker
+        run: pnpm --filter @gier/relay run deploy
